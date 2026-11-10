@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: 'HandTest';
+  src: url('/fonts/HandTest (3).ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 @theme inline {
   --font-sans: 'DM Sans', sans-serif;
   --font-display: 'Anton', Impact, sans-serif;
@@ -171,7 +179,8 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 
 /* Informations sous le titre */
 .hero-caption {
-  font-size: 22px;
+  font-family: 'HandTest', var(--font-sans);
+  font-size: 30px;
   line-height: 1.35;
 }
 
@@ -260,24 +269,114 @@ html.lenis body {
   z-index: 3;
 }
 
-/* Défilé des projets : une carte à la fois, côté droit */
+/* Défilé des projets : un patatoïde à la fois, du coin haut droit au bas droit */
 .project-slide {
   position: absolute;
   z-index: 2;
   top: 50%;
-  right: 5%;
-  width: min(620px, 48%);
+  right: 12%;
+  width: min(460px, 36vw);
   visibility: hidden; /* révélé par GSAP (autoAlpha) */
 }
-.project-slide img {
+.project-blob {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  transform: scale(1) translateX(0);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.project-blob img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
 }
-.project-slide-label { display: flex; justify-content: space-between; align-items: baseline; padding-top: 14px; }
-.project-slide-label h2 { font-size: 22px; font-weight: 500; margin: 0; }
-.project-slide-label p { font-size: 11px; color: var(--muted-foreground); margin: 0; }
+/* Variantes de patatoïdes, répétées projet après projet */
+.project-slide.blob-0 .project-blob { border-radius: 58% 42% 63% 37% / 46% 61% 39% 54%; }
+.project-slide.blob-1 .project-blob { border-radius: 38% 62% 45% 55% / 55% 40% 60% 45%; }
+.project-slide.blob-2 .project-blob { border-radius: 62% 38% 52% 48% / 42% 58% 44% 56%; }
+.project-slide.blob-3 .project-blob { border-radius: 48% 52% 40% 60% / 58% 45% 55% 42%; }
+.project-slide.blob-4 .project-blob { border-radius: 55% 45% 66% 34% / 48% 52% 46% 54%; }
+
+/* Vue agrandie : le patatoïde couvre une grande part de l'écran côté centre */
+.project-slide.is-expanded {
+  z-index: 8;
+}
+.project-slide.is-expanded .project-blob {
+  transform: scale(1.9) translateX(-34%);
+}
+.project-slide.is-expanded .project-blob img { filter: none; }
+
+/* Détails du projet, révélés en vue agrandie */
+.project-details {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8% 10%;
+  color: #fff;
+  text-shadow: 0 1px 8px rgb(0 0 0 / .45);
+  background: linear-gradient(180deg, transparent 42%, rgb(0 0 0 / .62));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s;
+}
+.project-slide.is-expanded .project-details { opacity: 1; pointer-events: auto; }
+.project-details-id { font-size: 11px; letter-spacing: .12em; opacity: .75; margin: 0; }
+.project-details h2 { font-size: clamp(22px, 3vw, 40px); font-weight: 500; margin: 0; }
+.project-details-meta { font-size: 12px; opacity: .85; margin: 0; }
+.project-details-body { font-size: 14px; line-height: 1.55; margin: 6px 0 0; opacity: .9; }
+
+/* Bouton « Aperçu » posé sur l'image pendant son arrêt au centre droit */
+.project-expand {
+  position: absolute;
+  right: clamp(14px, 3vw, 28px);
+  bottom: clamp(14px, 3vw, 28px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  visibility: hidden; /* révélé par GSAP pendant l'arrêt */
+  opacity: 0;
+  transition: background .2s;
+}
+.project-expand:hover { background: var(--primary); color: var(--primary-foreground); }
+
+/* Refermer la vue agrandie */
+.project-close {
+  position: absolute;
+  top: clamp(12px, 2.4vw, 22px);
+  right: clamp(12px, 2.4vw, 22px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / .5);
+  border-radius: 50%;
+  background: rgb(0 0 0 / .35);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s, background .2s;
+}
+.project-slide.is-expanded .project-close { opacity: 1; pointer-events: auto; }
+.project-close:hover { background: rgb(0 0 0 / .6); }
+
+.project-slide-label { display: flex; justify-content: space-between; align-items: baseline; padding: 18px 6% 0; gap: 16px; }
+.project-slide-label span:first-child { font-size: 16px; font-weight: 500; }
+.project-slide-label span:last-child { font-size: 11px; color: var(--muted-foreground); }
 
 /* Le footer conclut la scène en montant du bas */
 .hero-stage .site-footer {
@@ -291,6 +390,7 @@ html.lenis body {
 
 @media (max-width: 800px) {
   .project-slide { width: 86%; right: 7%; top: 44%; }
+  .project-slide.is-expanded .project-blob { transform: scale(1.35) translateX(-14%); }
 }
 
 /* Sans animation (prefers-reduced-motion) : la scène se lit en colonne */

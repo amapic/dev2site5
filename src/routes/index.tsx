@@ -1,14 +1,61 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowDown, ArrowUpRight } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, X } from 'lucide-react';
 import { Footer, meta, projects } from '@/components/portfolio';
 import { useHomeScroll } from '@/hooks/use-hero-scroll';
 import cyclist from '@/assets/cyclist.jpg';
 export const Route = createFileRoute('/')({ head: () => meta('Amaury — Portfolio créatif', 'Un regard libre sur la direction artistique, la photographie et les expériences visuelles.'), component: Index });
+
+const BLOB_SHAPES = 5; // nombres de variantes de patatoïdes répétées pour .project-slide.blob-N
+
+// Un projet en patatoïde : arrive du coin haut droit, se pose au centre droit,
+// et peut être agrandi (bouton « Aperçu ») pour révéler ses détails.
+function ProjectSlide({ project, index }: { project: (typeof projects)[number]; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const expand = (next: boolean) => {
+    setExpanded(next);
+    // Figé le scroll pendant la vue agrandie (Lenis quand dispo, sinon overflow natif)
+    const lenis = (window as unknown as { __lenis?: { start: () => void; stop: () => void } }).__lenis;
+    bodyLock(next);
+    if (next) lenis?.stop(); else lenis?.start();
+  };
+
+  return (
+    <article
+      className={`project-slide blob-${index % BLOB_SHAPES}${expanded ? ' is-expanded' : ''}`}
+      data-project-id={project.id}
+    >
+      <div className="project-blob">
+        <img src={project.image} alt={project.title} loading="lazy" width={1600} height={1000} />
+        {/* Détails du projet — contenus à remplir plus tard */}
+        <div className="project-details">
+          <p className="project-details-id">{project.id}</p>
+          <h2>{project.title}</h2>
+          <p className="project-details-meta">{project.category} — {project.year}</p>
+          <p className="project-details-body">{project.description || 'Description du projet à venir.'}</p>
+        </div>
+        <button type="button" className="project-expand" onClick={() => expand(true)} aria-label={`Agrandir ${project.title}`}>
+          Aperçu <ArrowUpRight size={15} aria-hidden="true" />
+        </button>
+        <button type="button" className="project-close" onClick={() => expand(false)} aria-label={`Refermer ${project.title}`}>
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+      <p className="project-slide-label"><span>{project.title}</span><span>{project.category} — {project.year}</span></p>
+    </article>
+  );
+}
+
+// Verrou natif sur le body — en complément de Lenis (déjà stoppé au besoin)
+function bodyLock(locked: boolean | undefined) {
+  document.body.style.overflow = locked ? 'hidden' : '';
+}
+
 function Index() {
   const contentRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  // Scène d'accueil : hero + défilé de projets + footer, pilotés par le scroll (GSAP)
+  // Scène d'accueil : hero + patatoïdes projets + footer, pilotés par le scroll (GSAP)
   const stageRef = useHomeScroll();
 
   // Ajuste la taille du titre pour que ses lettres touchent exactement les bords de .hero-content
@@ -45,15 +92,7 @@ function Index() {
         <div className="hero-bottom"><span>01 — LE REGARD</span><Link to="/projets" className="flex items-center gap-3 text-overlay-foreground">Découvrir les projets <span className="round-link"><ArrowUpRight size={20} /></span></Link><ArrowDown size={16} aria-hidden="true" /></div>
       </section>
       <div className="project-rail">
-        {projects.map((project) => (
-          <article className="project-slide" key={project.id}>
-            <img src={project.image} alt={project.title} loading="lazy" width={1600} height={1000} />
-            <div className="project-slide-label">
-              <h2>{project.title}</h2>
-              <p>{project.category} — {project.year}</p>
-            </div>
-          </article>
-        ))}
+        {projects.map((project, i) => <ProjectSlide key={project.id} project={project} index={i} />)}
       </div>
       <Footer />
     </section>
