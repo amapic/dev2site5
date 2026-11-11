@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'HandTest';
-  src: url('/fonts/HandTest (3).ttf') format('truetype');
+  src: url('/fonts/HandTest (5).ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -97,7 +97,7 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .brief-label { font-size: 12px; display: block; margin-bottom: 12px; }
 .brief-input { width: 100%; padding: 16px; border: 1px solid var(--border); background: transparent; font-family: inherit; font-size: 14px; resize: vertical; min-height: 170px; border-radius: 0; }
 .brief-input:focus { outline: 1px solid var(--primary); }
-.site-footer { border-top: 1px solid var(--border); margin: 0 4.5%; padding: 40px 0 25px; display: flex; flex-direction: column; gap: 36px; font-size: 13px; color: var(--muted-foreground); }
+.site-footer { border-top: 1px solid var(--border); margin: 0 4.5%; padding: 40px 0 25px; display: flex; flex-direction: column; gap: 36px; font-size: 20px; color: var(--muted-foreground); font-family: 'Arial', var(--font-sans); }
 .footer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
 .footer-grid p, .footer-grid li { margin: 0 0 8px; line-height: 1.6; }
 .footer-grid ul { list-style: none; margin: 0; padding: 0; }
@@ -127,6 +127,13 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   .site-footer { gap: 16px; flex-wrap: wrap; }
 }
 @media(prefers-reduced-motion: no-preference) { .hero-content { animation: arrive .8s ease-out both; } @keyframes arrive { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } }
+
+/* Première apparition du texte du hero (hors méga-titre) : la graisse gonfle de 100 vers sa valeur courante en 2s
+   — nécessite une police variable, d'où la plage DM Sans wght@100..1000 chargée dans __root.tsx */
+@media(prefers-reduced-motion: no-preference) {
+  .hero-content > :not(.mega-title) { animation: swell-weight 2s ease-out both; }
+  @keyframes swell-weight { from { font-weight: 100; } }
+}
 
 /* ========================================
    HERO — Composition inspirée de BALÒ
@@ -350,6 +357,12 @@ html.lenis body {
   transition: background .2s;
 }
 .project-expand:hover { background: var(--primary); color: var(--primary-foreground); }
+
+/* Flèche des projets : image fleche.png, retournée verticalement (le fichier pointe vers le bas) */
+.project-arrow { display: block; object-fit: contain; transform: scaleY(-1); }
+
+/* Flèche en ligne dans le texte (footer, légende) */
+.inline-arrow { display: inline-block; vertical-align: -0.12em; margin-left: 0.15em; object-fit: contain; transform: scaleY(-1); }
 
 /* Refermer la vue agrandie */
 .project-close {

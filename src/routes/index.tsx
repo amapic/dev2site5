@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowDown, ArrowUpRight, X } from 'lucide-react';
-import { Footer, meta, projects } from '@/components/portfolio';
+import { X } from 'lucide-react';
+import { Arrow, Footer, meta, projects } from '@/components/portfolio';
 import { useHomeScroll } from '@/hooks/use-hero-scroll';
 import cyclist from '@/assets/cyclist.jpg';
 export const Route = createFileRoute('/')({ head: () => meta('Amaury — Portfolio créatif', 'Un regard libre sur la direction artistique, la photographie et les expériences visuelles.'), component: Index });
@@ -36,7 +36,7 @@ function ProjectSlide({ project, index }: { project: (typeof projects)[number]; 
           <p className="project-details-body">{project.description || 'Description du projet à venir.'}</p>
         </div>
         <button type="button" className="project-expand" onClick={() => expand(true)} aria-label={`Agrandir ${project.title}`}>
-          Aperçu <ArrowUpRight size={15} aria-hidden="true" />
+          Aperçu <img src="/fleche.png" alt="" className="project-arrow" width={15} height={15} />
         </button>
         <button type="button" className="project-close" onClick={() => expand(false)} aria-label={`Refermer ${project.title}`}>
           <X size={18} aria-hidden="true" />
@@ -65,11 +65,23 @@ function Index() {
     const text = title?.firstElementChild as HTMLElement | null;
     if (!content || !title || !text) return;
 
+    // Pour compenser le side bearing gauche du premier glyphe (l'encre doit toucher le bord gauche)
+    const measure = document.createElement('canvas').getContext('2d');
+
     const fit = () => {
       title.style.fontSize = '100px';
       const natural = text.getBoundingClientRect().width;
       const target = content.clientWidth;
-      if (natural > 0 && target > 0) title.style.fontSize = `${(100 * target) / natural}px`;
+      if (natural > 0 && target > 0) {
+        title.style.fontSize = `${(100 * target) / natural}px`;
+        const style = getComputedStyle(title);
+        if (measure) {
+          measure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+          // actualBoundingBoxLeft < 0 quand l'encre commence à droite du point d'origine
+          const leftGap = Math.max(0, -(measure.measureText(text.textContent?.charAt(0) ?? '').actualBoundingBoxLeft ?? 0));
+          text.style.marginLeft = `${-leftGap}px`;
+        }
+      }
     };
 
     fit();
@@ -85,11 +97,11 @@ function Index() {
         <img src={cyclist} width={1920} height={1088} alt="Un cycliste sur une route de campagne, entre mouvement et nature" className="hero-photo" fetchPriority="high" />
         <div className="hero-content" ref={contentRef}>
           <div className="hero-eyebrow"><span>Portfolio indépendant / Édition 2026</span><span>Un regard, des idées.</span></div>
-          <h1 className="mega-title" ref={titleRef}><span className="whitespace-nowrap">DEV2SITE__</span></h1>
-          <div className="hero-caption"><p>Créer des images. Faire bouger les lignes.<br />Direction artistique & photographie ↗</p><p className="right">Un portfolio par Amaury<br />Sélection 2026</p></div>
+          <h1 className="mega-title" ref={titleRef}><span className="whitespace-pre">DEV2SITE  </span></h1>
+          <div className="hero-caption"><p>Créer des images. Faire bouger les lignes.<br />Direction artistique & photographie <Arrow size={22} /></p><p className="right">Un portfolio par Amaury<br />Sélection 2026</p></div>
           <p className="hero-note">Je pars d’une idée, d’un détail, d’une envie de faire autrement. Entre direction artistique, photographie et explorations visuelles, je construis des univers qui ont quelque chose à raconter. Voici une sélection de ce qui m’anime.</p>
         </div>
-        <div className="hero-bottom"><span>01 — LE REGARD</span><Link to="/projets" className="flex items-center gap-3 text-overlay-foreground">Découvrir les projets <span className="round-link"><ArrowUpRight size={20} /></span></Link><ArrowDown size={16} aria-hidden="true" /></div>
+        <div className="hero-bottom"><span>01 — LE REGARD</span><Link to="/projets" className="flex items-center gap-3 text-overlay-foreground">Découvrir les projets <span className="round-link"><Arrow size={20} /></span></Link><Arrow size={16} /></div>
       </section>
       <div className="project-rail">
         {projects.map((project, i) => <ProjectSlide key={project.id} project={project} index={i} />)}

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WebGLImage } from '@/components/webgl-image';
@@ -10,6 +10,11 @@ import giulia from '@/assets/giulia.webp';
 import stanleygrant from '@/assets/stanleygrant.webp';
 import pierrebazin from '@/assets/pierrebazin.jpg';
 import mariedurand from '@/assets/mariedurand.jpg';
+
+// Flèche universelle du site : l'image fleche.png (retournée en CSS, le fichier pointe vers le bas)
+export function Arrow({ size = 14 }: { size?: number }) {
+  return <img src="/fleche.png" alt="" width={40} height={size} className="inline-arrow" />;
+}
 
 export const projects = [
   { id: '001', title: 'Groupe Leonie', category: 'Corporate', year: '2025', image: groupeleonie, description: '' },
@@ -58,7 +63,7 @@ export function ProjectGrid({ filter = 'Tous' }: { filter?: string }) {
       <Button variant="ghost" className="project-visual h-auto w-full rounded-none p-0" onClick={() => setSelected(project)} aria-label={`Voir ${project.title}`}>
         <WebGLImage src={project.image} alt={project.title} from={slideFrom(k)} runKey={run} />
       </Button>
-      <div className="project-label"><div><h2>{project.title}</h2><p>{project.category} — {project.year}</p></div><Button variant="ghost" size="icon" aria-label={`Ouvrir ${project.title}`} onClick={() => setSelected(project)}><ArrowUpRight /></Button></div>
+      <div className="project-label"><div><h2>{project.title}</h2><p>{project.category} — {project.year}</p></div><Button variant="ghost" size="icon" aria-label={`Ouvrir ${project.title}`} onClick={() => setSelected(project)}><img src="/fleche.png" alt="" className="project-arrow" /></Button></div>
     </article>)}</div>
     {selected && <div className="project-dialog" role="dialog" aria-modal="true" aria-label={selected.title}>
       <Button autoFocus variant="outline" size="icon" className="dialog-close" aria-label="Fermer le projet" onClick={() => setSelected(null)}><X /></Button>
@@ -81,16 +86,16 @@ export function Footer() {
         {hours && <p>{hours}</p>}
         <p>{phone ? <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a> : pending}</p>
         <p>{email ? <a href={`mailto:${email}`}>{email}</a> : pending}</p>
-        <p>{website && <a href={website.url} target="_blank" rel="noreferrer">{website.label} ↗</a>}</p>
+        <p>{website && <a href={website.url} target="_blank" rel="noreferrer">{website.label} <Arrow /></a>}</p>
       </div>
       <div>
         <span className="footer-label">Réseaux</span>
-        <ul>{socials.map(s => <li key={s.label}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.label} ↗</a> : <span>{s.label} — {pending}</span>}</li>)}</ul>
+        <ul>{socials.map(s => <li key={s.label}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.label} <Arrow /></a> : <span>{s.label} — {pending}</span>}</li>)}</ul>
       </div>
       <div>
         <span className="footer-label">Projets</span>
-        <p><Link to="/projets">Voir les projets ↗</Link></p>
-        <p><Link to="/contact" className="text-foreground">On en parle ? ↗</Link></p>
+        <p><Link to="/projets">Voir les projets <Arrow /></Link></p>
+        <p><Link to="/contact" className="text-foreground">On en parle ? <Arrow /></Link></p>
       </div>
     </div>
     <div className="footer-bottom"><span>© 2026 Amaury — Portfolio créatif</span><span>Direction créative digitale · Sites conçus sur dev2site.net</span></div>
