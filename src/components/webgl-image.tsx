@@ -76,7 +76,7 @@ const INK = {
   noiseSize: 1024, // taille de la texture de bruit cuite une seule fois
 };
 
-const passthroughVertex = `
+export const passthroughVertex = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -87,7 +87,7 @@ const passthroughVertex = `
 // Cuisson du bruit simplex fbm (3 canaux) dans une texture. Le bruit est
 // généré dans le même espace corrigé d'aspect que le reveal : au simple
 // lookup vUv, un pixel de bruit tombe toujours au bon endroit de l'image.
-const noiseFragment = `
+export const noiseFragment = `
   precision highp float;
 
   uniform float uPlaneRatio;
@@ -293,7 +293,7 @@ function neededFrontReach() {
  * delegated to a 2D canvas, same as the browser composites the page: the pixel read is
  * the exact color displayed. Fallback to `fallback` if the syntax is not supported.
  */
-function cssColorToRawSrgb(css: string, fallback = 0xffffff): THREE.Color {
+export function cssColorToRawSrgb(css: string, fallback = 0xffffff): THREE.Color {
   const color = new THREE.Color().setHex(fallback, THREE.LinearSRGBColorSpace);
   const canvas = document.createElement('canvas');
   canvas.width = 1;
@@ -315,6 +315,61 @@ function cssColorToRawSrgb(css: string, fallback = 0xffffff): THREE.Color {
     }
   }
   return color;
+}
+
+/**
+ * Cuite une fois pour toutes une texture de bruit simplex fbm à trois canaux,
+ * partagée par l'effet encre du survol (WebGLImage) et le bord « encre » des
+ * patatoïdes (InkBlobImage). Même espace corrigé d'aspect que les shaders qui
+ * l'échantillonnent : au simple lookup vUv, un pixel de bruit tombe au bon endroit.
+ */
+export function bakeFbmNoiseTexture(
+  renderer: THREE.WebGLRenderer,
+  opts: { size: number; planeRatio: number; noiseScale: number; contrast: number; octaves: number; seed?: THREE.Vector3 },
+): { texture: THREE.Texture; reseed: (seed: THREE.Vector3) => void; rebake: (patch: { noiseScale?: number; contrast?: number; octaves?: number; seed?: THREE.Vector3 }) => void; dispose: () => void } {
+  const rt = new THREE.WebGLRenderTarget(opts.size, opts.size, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    generateMipmaps: false,
+    depthBuffer: false,
+  });
+  const uniforms = {
+    uPlaneRatio: { value: opts.planeRatio },
+    uNoiseScale: { value: opts.noiseScale },
+    uContrast: { value: opts.contrast },
+    uOctaves: { value: opts.octaves },
+    uNoiseSeed: { value: opts.seed ?? new THREE.Vector3() },
+  };
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const material = new THREE.ShaderMaterial({ vertexShader: passthroughVertex, fragmentShader: noiseFragment, uniforms });
+  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+  const render = () => {
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+  };
+  render();
+
+  return {
+    texture: rt.texture,
+    reseed: (seed: THREE.Vector3) => {
+      uniforms.uNoiseSeed.value.copy(seed);
+      render();
+    },
+    rebake: (patch) => {
+      if (patch.noiseScale !== undefined) uniforms.uNoiseScale.value = patch.noiseScale;
+      if (patch.contrast !== undefined) uniforms.uContrast.value = patch.contrast;
+      if (patch.octaves !== undefined) uniforms.uOctaves.value = patch.octaves;
+      if (patch.seed) uniforms.uNoiseSeed.value.copy(patch.seed);
+      render();
+    },
+    dispose: () => {
+      rt.dispose();
+      material.dispose();
+    },
+  };
 }
 
 /**

@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
 import { Arrow, Footer, meta, projects } from '@/components/portfolio';
+import { InkBlobImage } from '@/components/ink-blob-image';
 import { useHomeScroll } from '@/hooks/use-hero-scroll';
 import cyclist from '@/assets/cyclist.jpg';
 export const Route = createFileRoute('/')({ head: () => meta('Amaury — Portfolio créatif', 'Un regard libre sur la direction artistique, la photographie et les expériences visuelles.'), component: Index });
@@ -27,7 +28,7 @@ function ProjectSlide({ project, index }: { project: (typeof projects)[number]; 
       data-project-id={project.id}
     >
       <div className="project-blob">
-        <img src={project.image} alt={project.title} loading="lazy" width={1600} height={1000} />
+        <InkBlobImage src={project.image} alt={project.title} variant={index % BLOB_SHAPES} />
         {/* Détails du projet — contenus à remplir plus tard */}
         <div className="project-details">
           <p className="project-details-id">{project.id}</p>

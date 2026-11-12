@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WebGLImage } from '@/components/webgl-image';
 import cyclist from '@/assets/cyclist.jpg';
@@ -74,6 +74,41 @@ export function ProjectGrid({ filter = 'Tous' }: { filter?: string }) {
 }
 export function Header({ onImage }: { onImage: boolean }) {
   return <header className={`site-header ${onImage ? 'on-image' : ''}`}><Link to="/" className="wordmark">amaury<span>©</span></Link><nav className="site-nav" aria-label="Navigation principale"><Link to="/" activeOptions={{ exact: true }}>Accueil<sup>01</sup></Link><Link to="/projets">Projets<sup>02</sup></Link><Link to="/contact">Contact<sup>03</sup></Link></nav></header>;
+}
+
+// Menu latéral fixé au bord gauche, lu de bas en haut (inspiré du pen de Kevin Powell).
+// La « bulle » glisse derrière le lien survolé, puis revient se poser sur le lien actif.
+export function SideNav({ onImage }: { onImage: boolean }) {
+  const items = [
+    { label: 'Accueil', to: '/' },
+    { label: 'Projets', to: '/projets' },
+    { label: 'Contact', to: '/contact' },
+  ];
+  const navRef = useRef<HTMLElement>(null);
+  const [bubble, setBubble] = useState<{ top: number; left: number; height: number; width: number } | null>(null);
+
+  const place = (link: HTMLElement) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const nb = link.getBoundingClientRect();
+    const rect = nav.getBoundingClientRect();
+    setBubble({ top: nb.top - rect.top - 4, left: nb.left - rect.left - 6, height: nb.height + 8, width: nb.width + 12 });
+  };
+  // Au repos, la bulle se replace sur le lien actif
+  const rest = () => {
+    const active = navRef.current?.querySelector<HTMLElement>('a[data-status="active"]');
+    if (active) place(active); else setBubble(null);
+  };
+  useEffect(() => { rest(); }, []);
+
+  return (
+    <nav ref={navRef} className={`side-nav ${onImage ? 'side-nav-on-image' : ''}`} onMouseLeave={rest} aria-label="Navigation latérale">
+      {items.map(item => (
+        <Link key={item.to} to={item.to} activeOptions={item.to === '/' ? { exact: true } : {}} onMouseEnter={e => place(e.currentTarget)}>{item.label}</Link>
+      ))}
+      {bubble && <span className="side-nav-bubble" style={{ top: bubble.top, left: bubble.left, height: bubble.height, width: bubble.width }} />}
+    </nav>
+  );
 }
 export function Footer() {
   const pending = 'À venir';

@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'HandTest';
-  src: url('/fonts/HandTest (5).ttf') format('truetype');
+  src: url('/fonts/HandTest-RegularExtended.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -288,6 +288,7 @@ html.lenis body {
 .project-blob {
   position: relative;
   width: 100%;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   transform: scale(1) translateX(0);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
@@ -314,6 +315,15 @@ html.lenis body {
 }
 .project-slide.is-expanded .project-blob img { filter: none; }
 
+/* Bord « encre » (ink.niccolofanton.dev) : la forme patatoïde + les taches
+   sont dessinées par le shader sur canvas ; le clipping border-radius lisse
+   du conteneur n'a alors plus lieu d'être (le liseré d'encre remplace les
+   bords nets du border-radius). */
+.project-blob.ink-shaped { border-radius: 0; }
+.project-blob.ink-shaped .project-details { background: none; }
+.ink-blob { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.ink-blob canvas { width: 100%; height: 100%; display: block; }
+
 /* Détails du projet, révélés en vue agrandie */
 .project-details {
   position: absolute;
@@ -330,7 +340,6 @@ html.lenis body {
   pointer-events: none;
   transition: opacity .35s;
 }
-.project-slide.is-expanded .project-details { opacity: 1; pointer-events: auto; }
 .project-details-id { font-size: 11px; letter-spacing: .12em; opacity: .75; margin: 0; }
 .project-details h2 { font-size: clamp(22px, 3vw, 40px); font-weight: 500; margin: 0; }
 .project-details-meta { font-size: 12px; opacity: .85; margin: 0; }
@@ -413,3 +422,137 @@ html.lenis body {
   .project-slide { position: static; visibility: visible; width: 88%; margin: 40px auto; }
   .hero-stage .site-footer { position: static; margin: 60px 4.5% 0; }
 }
+
+/* ========================================
+   MENU LATÉRAL FIXE — 3 items, de bas en haut (inspiré du pen de Kevin Powell)
+   Retranscrit aux couleurs du site : tokens --foreground / --primary.
+======================================== */
+.side-nav {
+  position: fixed;
+  z-index: 40;
+  left: clamp(12px, 2.2vw, 28px);
+  bottom: 30px;
+  display: flex;
+  flex-direction: column-reverse; /* premier item (Accueil) en bas, dernier (Contact) en haut */
+  align-items: center;
+  gap: 34px;
+  padding: 16px 0 16px 8px;
+  color: var(--foreground);
+}
+.side-nav a {
+  position: relative;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 4px 2px;
+  transition: color .2s;
+}
+.side-nav a:hover { color: var(--primary-foreground); }
+.side-nav a {
+  position: relative;
+  z-index: 1;
+}
+.side-nav-bubble {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--primary);
+  border-radius: 999px;
+  opacity: 0;
+  transition: top .35s cubic-bezier(.22, 1, .36, 1), left .35s cubic-bezier(.22, 1, .36, 1),
+    width .35s cubic-bezier(.22, 1, .36, 1), height .35s cubic-bezier(.22, 1, .36, 1), opacity .3s;
+}
+.side-nav:hover .side-nav-bubble { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .side-nav-bubble { transition: none; }
+}
+.side-nav a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transform: translateX(-50%) scale(0);
+  transition: opacity .2s, transform .2s;
+}
+.side-nav a[data-status='active']::after { opacity: 1; transform: translateX(-50%) scale(1); }
+.side-nav a[data-status='active'] { color: var(--primary); }
+
+/* Sur le hero (photo) : le menu passe en blanc comme le header */
+.side-nav-on-image { color: var(--overlay-foreground); }
+
+@media (max-width: 800px) {
+  .side-nav { display: none; }
+}
+
+/* ========================================
+   HUD DE RÉGLAGE — bord « encre » du patatoïde
+   (debug : bouton flottant « Encre », touche « i », ou ?hud)
+======================================== */
+.ink-hud {
+  position: fixed;
+  z-index: 90;
+  right: 16px;
+  bottom: 16px;
+  font-family: ui-monospace, monospace;
+}
+.ink-hud-toggle {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 11px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgb(0 0 0 / .12);
+}
+.ink-hud-toggle:hover { color: var(--primary); }
+.ink-hud-open .ink-hud-toggle::before { content: '✕ '; }
+.ink-hud-open .ink-hud-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: 300px;
+  max-height: min(70svh, 620px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--background) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 30px rgb(0 0 0 / .18);
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+}
+.ink-hud-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  align-items: center;
+  color: var(--muted-foreground);
+}
+.ink-hud-row input[type='range'] { grid-column: 1 / -1; width: 100%; accent-color: var(--primary); }
+.ink-hud-value { font-variant-numeric: tabular-nums; color: var(--foreground); }
+.ink-hud-row input[type='color'] { width: 42px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
+.ink-hud-actions { display: flex; gap: 8px; margin-top: 4px; }
+.ink-hud-actions button {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  cursor: pointer;
+}
+.ink-hud-actions button:hover { border-color: var(--primary); color: var(--primary); }

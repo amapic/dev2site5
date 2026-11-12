@@ -11,7 +11,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
-import { Header, Footer } from "@/components/portfolio";
+import { Header, Footer, SideNav } from "@/components/portfolio";
+import { InkDebugHud } from "@/components/ink-debug-hud";
 import { useSmoothScroll } from "@/hooks/use-smooth-scroll";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -128,9 +129,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Header onImage={pathname === "/"} />
+      <SideNav onImage={pathname === "/"} />
       <Outlet />
       {/* Sur l'accueil, le footer fait partie de la scène animée (voir index.tsx) */}
       {pathname !== "/" && <Footer />}
+      <InkDebugHud />
     </QueryClientProvider>
   );
 }
