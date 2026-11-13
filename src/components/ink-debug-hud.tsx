@@ -30,28 +30,22 @@ const SLIDERS: SliderDef[] = [
 ];
 
 export function InkDebugHud() {
-  const [open, setOpen] = useState(
-    () => new URLSearchParams(window.location.search).has('hud') || localStorage.getItem('ink-hud') === '1',
-  );
+  // Ouvert seulement côté navigateur : ?hud dans l'URL ou mémorisé en localStorage.
+  // (La lecture est dans l'effet : ce composant est rendu aussi côté serveur.)
+  const [open, setOpen] = useState(false);
   // Les réglages vivent dans inkEdgeSettings (source de vérité lue par le shader) ;
   // ce compteur ne sert qu'à rafraîchir l'affichage des valeurs.
   const [, force] = useReducerTick();
 
   useEffect(() => {
-    if (!open) {
-      localStorage.removeItem('ink-hud');
-      return;
-    }
-    localStorage.setItem('ink-hud', '1');
-  }, [open]);
-
-  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'i' && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target instanceof HTMLInputElement)) {
-        setOpen(open => !open);
+        setOpen(o => !o);
       }
     };
     window.addEventListener('keydown', onKey);
+    // ?hud ouvre le panneau au chargement ; sinon, dernier état mémorisé.
+    if (new URLSearchParams(window.location.search).has('hud') || localStorage.getItem('ink-hud') === '1') setOpen(true);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
@@ -63,7 +57,15 @@ export function InkDebugHud() {
 
   return (
     <div className={`ink-hud${open ? ' ink-hud-open' : ''}`}>
-      <button type="button" className="ink-hud-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+      <button
+        type="button"
+        className="ink-hud-toggle"
+        onClick={() => setOpen(o => {
+          localStorage.setItem('ink-hud', !o ? '1' : '0');
+          return !o;
+        })}
+        aria-expanded={open}
+      >
         Encre
       </button>
       {open && (

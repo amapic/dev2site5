@@ -424,69 +424,152 @@ html.lenis body {
 }
 
 /* ========================================
-   MENU LATÉRAL FIXE — 3 items, de bas en haut (inspiré du pen de Kevin Powell)
-   Retranscrit aux couleurs du site : tokens --foreground / --primary.
+   MENU LATÉRAL FIXE — reproduction du pen de Kevin Powell (QwbRxNw)
+   Structure nav > ul > li > a + CSS anchor positioning, adapté en colonne
+   (flex-direction: column) : texte droit, lu de haut en bas. Le souligné au
+   repos est transposé à droite des labels (la fonction anchor() est appelée
+   sur les axes verticaux), et se déplie en pill autour du lien survolé or
+   focus. Aucun JS.
 ======================================== */
 .side-nav {
   position: fixed;
   z-index: 40;
-  left: clamp(12px, 2.2vw, 28px);
-  bottom: 30px;
+  left: 12px;
+  bottom: 34px;
+  isolation: isolate; /* les couches en z négatif restent au-dessus du fond */
+  color: var(--overlay-foreground);
+}
+.side-nav > ul {
+  position: relative;
   display: flex;
-  flex-direction: column-reverse; /* premier item (Accueil) en bas, dernier (Contact) en haut */
-  align-items: center;
-  gap: 34px;
-  padding: 16px 0 16px 8px;
-  color: var(--foreground);
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Au repos, le souligné est ancré sur le ul entier ; au survol, l'ancre
+     bascule sur le lien visé — c'est toute la magie du pen. */
+  anchor-name: --nav-indicator;
 }
 .side-nav a {
-  position: relative;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  color: inherit;
-  font-size: 11px;
+  display: block;
+  padding: 0.55rem 1rem 0.55rem 0.8rem;
+  color: white;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: .14em;
+  letter-spacing: .16em;
   text-transform: uppercase;
-  padding: 4px 2px;
   transition: color .2s;
 }
-.side-nav a:hover { color: var(--primary-foreground); }
-.side-nav a {
-  position: relative;
-  z-index: 1;
+.side-nav a:hover,
+.side-nav a:focus-visible { color: var(--primary-foreground); }
+.side-nav a:hover,
+.side-nav a:focus-visible {
+  anchor-name: --nav-indicator;
 }
-.side-nav-bubble {
+
+/* Boîte sombre translucide autour des labels (l'équivalent du bloc du pen) */
+.side-nav > ul::after {
+  content: '';
   position: absolute;
-  z-index: 0;
-  pointer-events: none;
+  z-index: -3;
+  inset: -8px;
+  border-radius: 8px;
+  background: hsl(0 0% 0% / .55);
+  backdrop-filter: blur(2px);
+  @supports (corner-shape: squircle) {
+    border-radius: 24px;
+    border-shape: squircle;
+  }
+}
+
+/* Le souligné / pilule, deux couches comme le pen : couleur pleine + verre.
+   Repos : trait vertical de 4px à droite des labels, de haut en bas du menu.
+   Survol : se déplie en pill autour de l'ancre (le lien visé). */
+.side-nav::before,
+.side-nav::after {
+  content: '';
+  position: absolute;
+  position-anchor: --nav-indicator;
+  z-index: -2;
+  border-radius: 999px 999px 999px 999px;
   background: var(--primary);
-  border-radius: 999px;
-  opacity: 0;
-  transition: top .35s cubic-bezier(.22, 1, .36, 1), left .35s cubic-bezier(.22, 1, .36, 1),
-    width .35s cubic-bezier(.22, 1, .36, 1), height .35s cubic-bezier(.22, 1, .36, 1), opacity .3s;
+  top: calc(anchor(top) + 0.5rem);
+  right: calc(anchor(right) - 4px);
+  bottom: calc(anchor(bottom) - 0.5rem);
+  left: calc(anchor(right) - 4px);
+  transition: 500ms linear(
+    0,
+    0.008 1.1%,
+    0.031 2.2%,
+    0.129 4.8%,
+    0.257 7.2%,
+    0.671 14.2%,
+    0.789 16.5%,
+    0.881 18.6%,
+    0.957 20.7%,
+    1.019 22.9%,
+    1.063 25.1%,
+    1.094 27.4%,
+    1.114 30.7%,
+    1.112 34.5%,
+    1.018 49.9%,
+    0.99 59.1%,
+    1
+  );
 }
-.side-nav:hover .side-nav-bubble { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .side-nav-bubble { transition: none; }
+.side-nav::after {
+  z-index: -1;
+  backdrop-filter: blur(2px);
+  background-color: hsl(0 0% 100% / .08);
 }
+.side-nav:has(a:hover, a:focus-visible)::before,
+.side-nav:has(a:hover, a:focus-visible)::after {
+  top: anchor(top);
+  right: anchor(right);
+  left: anchor(left);
+  @supports (corner-shape: squircle) {
+    corner-shape: squircle;
+    border-radius: 50%;
+  }
+}
+.side-nav:has(li:first-of-type a:hover, li:first-of-type a:focus-visible)::before,
+.side-nav:has(li:first-of-type a:hover, li:first-of-type a:focus-visible)::after {
+  @supports (corner-shape: squircle) {
+    border-radius: 32px 32px 50% 50%; /* premier item en haut : coins plats au-dessus */
+  }
+}
+.side-nav:has(li:last-of-type a:hover, li:last-of-type a:focus-visible)::before,
+.side-nav:has(li:last-of-type a:hover, li:last-of-type a:focus-visible)::after {
+  @supports (corner-shape: squircle) {
+    border-radius: 50% 50% 32px 32px;
+  }
+}
+
+/* Point du lien actif */
 .side-nav a::after {
   content: '';
   position: absolute;
-  left: 50%;
-  bottom: -10px;
+  right: 6px;
+  top: 50%;
   width: 3px;
   height: 3px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transform: translateX(-50%) scale(0);
+  transform: translateY(-50%) scale(0);
   transition: opacity .2s, transform .2s;
 }
+.side-nav a { position: relative; }
 .side-nav a[data-status='active']::after { opacity: 1; transform: translateX(-50%) scale(1); }
 .side-nav a[data-status='active'] { color: var(--primary); }
 
-/* Sur le hero (photo) : le menu passe en blanc comme le header */
+@media (prefers-reduced-motion: reduce) {
+  .side-nav::before,
+  .side-nav::after { transition: none; }
+}
+
+/* Sur le hero (photo) : le menu conserve sa boîte sombre */
 .side-nav-on-image { color: var(--overlay-foreground); }
 
 @media (max-width: 800px) {
@@ -556,3 +639,296 @@ html.lenis body {
   cursor: pointer;
 }
 .ink-hud-actions button:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ========================================
+   LABO — DEMO « MISE AU POINT »
+   (/labo) : rack focus sur la page tout entière, piloté par le scroll.
+   Tout le contenu vit dans .focus-lens : c'est ce conteneur que le JS
+   floute (blur + luminosité + saturation + micro dé-zoom), écran par écran.
+======================================== */
+.focus-stage {
+  position: relative;
+  background: var(--background);
+}
+.focus-lens {
+  will-change: filter, transform;
+  transform-origin: 50% 20%;
+}
+/* Les bords flous « débordent » : une marge interne invisible compense
+   (technique classique du blur plein écran, sinon les bords fondent). */
+.focus-lens { padding: 2px; margin: -2px; }
+.focus-article {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 160px 6% 140px;
+  min-height: 330svh; /* la hauteur fait la durée du défilement (span de 2,2 écrans) */
+}
+.focus-head { margin-bottom: 70px; }
+.focus-eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted-foreground);
+  margin: 0 0 14px;
+}
+.focus-title { font-size: clamp(64px, 12vw, 150px); margin: 0 0 30px; }
+.focus-lede {
+  font-size: clamp(19px, 2.4vw, 26px);
+  line-height: 1.5;
+  max-width: 640px;
+  margin: 0;
+  color: var(--foreground);
+}
+.focus-figure { margin: 90px 0; }
+.focus-figure img { width: 100%; height: auto; display: block; }
+.focus-figure figcaption {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  padding: 12px 2px 0;
+  border-top: 1px solid var(--border);
+}
+.focus-section { margin: 110px 0; }
+.focus-section h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  font-size: clamp(24px, 3.4vw, 38px);
+  font-weight: 500;
+  margin: 0 0 22px;
+}
+.focus-section h2 span {
+  font-size: 12px;
+  color: var(--primary);
+  letter-spacing: .12em;
+}
+.focus-section p {
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 640px;
+  margin: 0 0 18px;
+  color: var(--foreground);
+}
+.focus-section p em { font-style: normal; color: var(--primary); }
+.focus-section blockquote {
+  margin: 40px 0 0;
+  padding: 0 0 0 24px;
+  border-left: 2px solid var(--primary);
+  font-family: 'HandTest', var(--font-sans);
+  font-size: clamp(20px, 2.6vw, 28px);
+  line-height: 1.4;
+  max-width: 560px;
+}
+.focus-section-last { margin-bottom: 40px; }
+.focus-fineprint {
+  color: var(--muted-foreground) !important;
+  font-size: 13px !important;
+}
+
+/* Instrument de bord (hors zone floutée) */
+.focus-meter {
+  position: fixed;
+  z-index: 30;
+  left: 4.5%;
+  bottom: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--background) 82%, transparent);
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted-foreground);
+}
+.focus-meter-bar {
+  position: relative;
+  width: 120px;
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.focus-meter-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+.focus-meter-value { color: var(--foreground); font-variant-numeric: tabular-nums; }
+.focus-hint {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--muted-foreground);
+  opacity: 1;
+  transition: opacity .5s;
+}
+@media (max-width: 800px) {
+  .focus-meter { left: 16px; right: 16px; bottom: 16px; }
+  .focus-hint { display: none; }
+  .focus-article { padding-top: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-hint { display: none; }
+}
+
+/* ========================================
+   PEN DE KEVIN POWELL, RECOPIÉ 1:1 — /nav-bulle
+   (codepen.io/kevinpowell/pen/QwbRxNw) : souligné-ancre qui se déforme en
+   bulle au survol. Le CSS original est appliqué tel quel, avec seulement le
+   préfixe .pen-stage (et nav en position: relative, pour ancrer le conteneur
+   des pseudo-éléments positionnés) pour ne pas fuiter sur le reste du site.
+======================================== */
+.pen-stage {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  gap: 3rem;
+  padding: 3rem 0;
+  /* Stacking context propre : les z-index négatifs des couches de verre se
+     peignent AU-DESSUS de ce fond (sinon ils passent derrière — dans le pen,
+     le fond était sur body, qui se peint à part) */
+  isolation: isolate;
+  color-scheme: dark;
+  color: hsl(0 0% 100%);
+  font-family: system-ui;
+  font-size: 2rem;
+  font-weight: 700;
+  text-shadow: 0 2px 16px hsl(0 0% 0% / .5);
+  /* Fond très vif : le photo d'origine est remplacée par un dégradé néon */
+  background-image: linear-gradient(120deg,
+    hsl(330 100% 58%),
+    hsl(45 100% 55%) 42%,
+    hsl(165 100% 45%) 72%,
+    hsl(215 100% 60%));
+  background-attachment: fixed;
+}
+.pen-stage nav {
+  position: relative; /* juste ajouté : conteneur des pseudo-éléments ancrés */
+  width: fit-content;
+  margin: 0 auto;
+  padding: 8px;
+  border-radius: 8px;
+  @supports (corner-shape: squircle) {
+    border-radius: 24px;
+    border-shape: squircle;
+  }
+  &::before {
+    z-index: -2;
+    background-attachment: fixed;
+    /* Copie du fond, recadrée par la bulle : même dégradé néon que le stage */
+    background-image: linear-gradient(120deg,
+      hsl(330 100% 58%),
+      hsl(45 100% 55%) 42%,
+      hsl(165 100% 45%) 72%,
+      hsl(215 100% 60%));
+    background-color: hsl(322 100% 50%);
+  }
+  &::after {
+    backdrop-filter: blur(2px);
+    background-color: hsl(60 100% 55% / .45); /* verre jaune fluo */
+    z-index: -1;
+  }
+  &::before,
+  &::after {
+    border-radius: 8px;
+  }
+  & > ul {
+    position: relative;
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -3;
+      inset: -8px;
+      border-radius: 8px;
+      @supports (corner-shape: squircle) {
+        border-radius: 24px;
+        border-shape: squircle;
+      }
+      background: hsl(280 100% 12% / .92); /* boîte violette très sombre : le trait néon saute dessus */
+      backdrop-filter: blur(2px);
+    }
+  }
+  &:has(a:hover)::before,
+  &:has(a:hover)::after {
+    @supports (corner-shape: squircle) {
+      corner-shape: squircle;
+      border-radius: 50%;
+    }
+  }
+  &:has(li:first-of-type a:hover)::before,
+  &:has(li:first-of-type a:hover)::after {
+    @supports (corner-shape: squircle) {
+      border-radius: 32px 50% 50% 32px;
+    }
+  }
+  &:has(li:last-of-type a:hover)::before,
+  &:has(li:last-of-type a:hover)::after {
+    @supports (corner-shape: squircle) {
+      border-radius: 50% 32px 32px 50%;
+    }
+  }
+  > ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+  }
+  a {
+    display: block;
+    padding: 1rem;
+    text-decoration: none;
+    color: white;
+  }
+}
+.pen-stage nav ul {
+  anchor-name: --nav-indicator;
+}
+.pen-stage nav a:hover,
+.pen-stage nav a:focus-visible {
+  anchor-name: --nav-indicator;
+}
+.pen-stage nav::before,
+.pen-stage nav::after {
+  content: "";
+  position: absolute;
+  position-anchor: --nav-indicator;
+  top: calc(anchor(bottom) - 4px);
+  right: calc(anchor(right) + 1rem);
+  bottom: anchor(bottom);
+  left: calc(anchor(left) + 1rem);
+  transition: 500ms;
+  transition-timing-function: linear(
+    0,
+    0.008 1.1%,
+    0.031 2.2%,
+    0.129 4.8%,
+    0.257 7.2%,
+    0.671 14.2%,
+    0.789 16.5%,
+    0.881 18.6%,
+    0.957 20.7%,
+    1.019 22.9%,
+    1.063 25.1%,
+    1.094 27.4%,
+    1.114 30.7%,
+    1.112 34.5%,
+    1.018 49.9%,
+    0.99 59.1%,
+    1
+  );
+}
+.pen-stage nav:has(a:hover, a:focus-visible)::before,
+.pen-stage nav:has(a:hover, a:focus-visible)::after {
+  top: anchor(top);
+  right: anchor(right);
+  left: anchor(left);
+}

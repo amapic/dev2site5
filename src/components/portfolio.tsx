@@ -73,40 +73,29 @@ export function ProjectGrid({ filter = 'Tous' }: { filter?: string }) {
   </>;
 }
 export function Header({ onImage }: { onImage: boolean }) {
-  return <header className={`site-header ${onImage ? 'on-image' : ''}`}><Link to="/" className="wordmark">amaury<span>©</span></Link><nav className="site-nav" aria-label="Navigation principale"><Link to="/" activeOptions={{ exact: true }}>Accueil<sup>01</sup></Link><Link to="/projets">Projets<sup>02</sup></Link><Link to="/contact">Contact<sup>03</sup></Link></nav></header>;
+  return <header className={`site-header ${onImage ? 'on-image' : ''}`}><Link to="/" className="wordmark">amaury<span>©</span></Link><nav className="site-nav" aria-label="Navigation principale"><Link to="/" activeOptions={{ exact: true }}>Accueil<sup>01</sup></Link><Link to="/projets">Projets<sup>02</sup></Link><Link to="/labo">Labo<sup>04</sup></Link><Link to="/nav-bulle">Bulle<sup>05</sup></Link><Link to="/contact">Contact<sup>03</sup></Link></nav></header>;
 }
 
-// Menu latéral fixé au bord gauche, lu de bas en haut (inspiré du pen de Kevin Powell).
-// La « bulle » glisse derrière le lien survolé, puis revient se poser sur le lien actif.
+// Menu latéral fixé au bord gauche, lu de bas en haut : reproduction du pen de
+// Kevin Powell (nav > ul > li > a + CSS anchor positioning), tournée à 90° —
+// le souligné reste horizontal dans l'espace du menu, donc à droite des
+// labels une fois tourné. Tout est CSS (voir styles.css, section side-nav) :
+// plus de bulle pilotée par React.
 export function SideNav({ onImage }: { onImage: boolean }) {
   const items = [
     { label: 'Accueil', to: '/' },
     { label: 'Projets', to: '/projets' },
     { label: 'Contact', to: '/contact' },
   ];
-  const navRef = useRef<HTMLElement>(null);
-  const [bubble, setBubble] = useState<{ top: number; left: number; height: number; width: number } | null>(null);
-
-  const place = (link: HTMLElement) => {
-    const nav = navRef.current;
-    if (!nav) return;
-    const nb = link.getBoundingClientRect();
-    const rect = nav.getBoundingClientRect();
-    setBubble({ top: nb.top - rect.top - 4, left: nb.left - rect.left - 6, height: nb.height + 8, width: nb.width + 12 });
-  };
-  // Au repos, la bulle se replace sur le lien actif
-  const rest = () => {
-    const active = navRef.current?.querySelector<HTMLElement>('a[data-status="active"]');
-    if (active) place(active); else setBubble(null);
-  };
-  useEffect(() => { rest(); }, []);
-
   return (
-    <nav ref={navRef} className={`side-nav ${onImage ? 'side-nav-on-image' : ''}`} onMouseLeave={rest} aria-label="Navigation latérale">
-      {items.map(item => (
-        <Link key={item.to} to={item.to} activeOptions={item.to === '/' ? { exact: true } : {}} onMouseEnter={e => place(e.currentTarget)}>{item.label}</Link>
-      ))}
-      {bubble && <span className="side-nav-bubble" style={{ top: bubble.top, left: bubble.left, height: bubble.height, width: bubble.width }} />}
+    <nav className={`side-nav ${onImage ? 'side-nav-on-image' : ''}`} aria-label="Navigation latérale">
+      <ul>
+        {items.map(item => (
+          <li key={item.to}>
+            <Link to={item.to} activeOptions={item.to === '/' ? { exact: true } : {}}>{item.label}</Link>
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
