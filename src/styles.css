@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'HandTest';
-  src: url('/fonts/HandTest-RegularExtended.ttf') format('truetype');
+  src: url('/fonts/HandTest-RegularExtended.sfd') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -97,7 +97,7 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .brief-label { font-size: 12px; display: block; margin-bottom: 12px; }
 .brief-input { width: 100%; padding: 16px; border: 1px solid var(--border); background: transparent; font-family: inherit; font-size: 14px; resize: vertical; min-height: 170px; border-radius: 0; }
 .brief-input:focus { outline: 1px solid var(--primary); }
-.site-footer { border-top: 1px solid var(--border); margin: 0 4.5%; padding: 40px 0 25px; display: flex; flex-direction: column; gap: 36px; font-size: 20px; color: var(--muted-foreground); font-family: 'Arial', var(--font-sans); }
+.site-footer { border-top: 1px solid var(--border); margin: 0 4.5%; padding: 40px 0 25px; display: flex; flex-direction: column; gap: 36px; font-size: 20px; color: var(--muted-foreground); font-family:   'HandTest'; }
 .footer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
 .footer-grid p, .footer-grid li { margin: 0 0 8px; line-height: 1.6; }
 .footer-grid ul { list-style: none; margin: 0; padding: 0; }
@@ -561,7 +561,7 @@ html.lenis body {
   transition: opacity .2s, transform .2s;
 }
 .side-nav a { position: relative; }
-.side-nav a[data-status='active']::after { opacity: 1; transform: translateX(-50%) scale(1); }
+ire u.side-nav a[data-status='active']::after { opacity: 1; transform: translateX(-50%) scale(1); }
 .side-nav a[data-status='active'] { color: var(--primary); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -931,4 +931,132 @@ html.lenis body {
   top: anchor(top);
   right: anchor(right);
   left: anchor(left);
+}
+
+/* ========================================
+   LABO — DEMO « CHOC » (/choc)
+   Deux patatoïdes d'encre qui se percutent : physique en JS, formes
+   dessinées par le shader sur un canvas plein cadre dans .choc-stage.
+======================================== */
+.choc-stage {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--secondary);
+}
+.choc-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.choc-titling {
+  position: absolute;
+  z-index: 2;
+  left: 8%;
+  top: 27%;
+  width: 76%;
+  pointer-events: none;
+}
+.choc-eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+.choc-title {
+  font-family: var(--font-display);
+  font-size: clamp(90px, 14vw, 200px);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin: 12px 0 14px;
+}
+.choc-lede {
+  max-width: 520px;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  opacity: .85;
+  text-shadow: 0 1px 10px rgb(255 255 255 / .5);
+}
+@media (max-width: 800px) {
+  .choc-titling { left: 6%; width: 88%; top: 24%; }
+  .choc-lede { font-size: 14px; }
+}
+
+
+/* ========================================
+   LABO — DEMO « VIDÉO » (/video)
+   Un mp4 de public/ posé en fond sur toute la page : object-fit cover,
+   assombrissement léger pour la lisibilité de la titraille.
+======================================== */
+.video-stage {
+  position: relative;
+  height: 100svh;
+  min-height: 620px;
+  overflow: hidden;
+  color: var(--overlay-foreground);
+}
+.video-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.video-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.10),
+    transparent 38%,
+    rgba(0, 0, 0, 0.22)
+  );
+  pointer-events: none;
+}
+.video-titling {
+  position: absolute;
+  z-index: 2;
+  left: 12%;
+  top: 27%;
+  width: 76%;
+  pointer-events: none;
+}
+.video-eyebrow {
+  font-size: 13px;
+  letter-spacing: -0.02em;
+  opacity: .9;
+  margin: 0;
+}
+.video-title {
+  font-family: var(--font-display);
+  font-size: clamp(90px, 16vw, 240px);
+  line-height: 0.82;
+  letter-spacing: -0.035em;
+  font-weight: 400;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin: 12px 0 14px;
+}
+.video-lede {
+  max-width: 520px;
+  font-family: 'HandTest', var(--font-sans);
+  font-size: 22px;
+  line-height: 1.4;
+  margin: 0;
+  opacity: .92;
+  text-shadow: 0 1px 12px rgb(0 0 0 / .5);
+}
+@media (max-width: 800px) {
+  .video-titling { left: 6%; width: 88%; top: 24%; }
+  .video-lede { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .video-bg { object-position: center; }
 }
