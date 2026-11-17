@@ -78,10 +78,10 @@ button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
 .project-nav { display: flex; justify-content: flex-end; gap: 2px; margin-bottom: 10px; }
 .project-nav button { opacity: .4; transition: opacity .2s; }
 .project-nav button:hover { opacity: 1; }
-.webgl-image { display: block; position: relative; width: 100%; aspect-ratio: 1.45; overflow: hidden; }
+.webgl-image { display: block; position: relative; width: 100%; aspect-ratio: 1.45; }
 .webgl-image canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .project-image { width: 100%; aspect-ratio: 1.45; object-fit: cover; transition: transform .6s; }
-.project-visual { overflow: hidden; position: relative; }
+.project-visual { position: relative; }
 .project-visual:hover .project-image { transform: scale(1.025); }
 .project-label { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
 .project-label h2 { font-size: 17px; font-weight: 500; margin: 0; }
@@ -289,7 +289,6 @@ html.lenis body {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  overflow: hidden;
   transform: scale(1) translateX(0);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -299,12 +298,8 @@ html.lenis body {
   aspect-ratio: 4 / 3;
   object-fit: cover;
 }
-/* Variantes de patatoïdes, répétées projet après projet */
-.project-slide.blob-0 .project-blob { border-radius: 58% 42% 63% 37% / 46% 61% 39% 54%; }
-.project-slide.blob-1 .project-blob { border-radius: 38% 62% 45% 55% / 55% 40% 60% 45%; }
-.project-slide.blob-2 .project-blob { border-radius: 62% 38% 52% 48% / 42% 58% 44% 56%; }
-.project-slide.blob-3 .project-blob { border-radius: 48% 52% 40% 60% / 58% 45% 55% 42%; }
-.project-slide.blob-4 .project-blob { border-radius: 55% 45% 66% 34% / 48% 52% 46% 54%; }
+/* Variantes de patatoïdes : plus aucun rogne CSS — le contour est dessiné
+   par le shader (SDF), le canvas n'est rogné par rien. */
 
 /* Vue agrandie : le patatoïde couvre une grande part de l'écran côté centre */
 .project-slide.is-expanded {
@@ -315,11 +310,8 @@ html.lenis body {
 }
 .project-slide.is-expanded .project-blob img { filter: none; }
 
-/* Bord « encre » (ink.niccolofanton.dev) : la forme patatoïde + les taches
-   sont dessinées par le shader sur canvas ; le clipping border-radius lisse
-   du conteneur n'a alors plus lieu d'être (le liseré d'encre remplace les
-   bords nets du border-radius). */
-.project-blob.ink-shaped { border-radius: 0; }
+/* Bord « encre » : la forme + les taches sont dessinées par le shader sur
+   canvas. Aucun rogne CSS sur le visuel : le pourtour vient du shader seul. */
 .project-blob.ink-shaped .project-details { background: none; }
 .ink-blob { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .ink-blob canvas { width: 100%; height: 100%; display: block; }
@@ -1059,4 +1051,86 @@ ire u.side-nav a[data-status='active']::after { opacity: 1; transform: translate
 }
 @media (prefers-reduced-motion: reduce) {
   .video-bg { object-position: center; }
+}
+
+/* ========================================
+   ATELIER — banc d'essai du patatoïde (/atelier)
+   Un seul patatoïde centré, HUD de réglage ouvert. Fonte de base du HUD.
+======================================== */
+.atelier-stage {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 120px 6% 60px;
+}
+.atelier-patatoide {
+  position: relative;
+  width: min(560px, 62vw);
+  aspect-ratio: 4 / 3;
+}
+.atelier-caption {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+@media (max-width: 800px) {
+  .atelier-patatoide { width: 88vw; }
+}
+
+/* ========================================
+   PATATOÏDES « ÉCRAN » — SVG sculptés recuits plein cadre
+   (InkBlobImage en mode écran, classe .ink-screen posée par le composant) :
+   la slide couvre la scène entière et le domaine SVG [0..1000]² tombe sur
+   l'écran — le bord haut droit du SVG est proche du bord haut droit réel.
+======================================== */
+.project-slide.ink-screen {
+  inset: 0;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* laisse le scroll traverser ; boutons ré-armés plus bas */
+}
+.project-slide.ink-screen .project-blob {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  aspect-ratio: auto;
+  transform: none;
+}
+/* De façon inattendue, l'arrivée/le départ GSAP reste lisible : la forme
+   pleine page entre par translateY négatif et sort vers le bas. */
+.project-slide.ink-screen.is-expanded .project-blob { transform: none; }
+.project-slide.ink-screen .project-details { padding: 8%; }
+/* Contenu DOM découpé par la forme : le SVG d'arrivée (--ink-mask-url, posé
+   par ink-blob-image.tsx dès sa charge) sert de masque CSS, étiré
+   100%×100% — exactement le mapping du shader. Tout HTML ajouté dans
+   .project-details reste donc à l'intérieur du patatoïde. Canvas NON masqué
+   (le shader dessine déjà son pourtour ; un masque couperait les formes
+   intermédiaires du morphing) et boutons NON masqués (ils restent
+   utilisables même hors forme). */
+.project-slide.ink-screen .project-details {
+  -webkit-mask-image: var(--ink-mask-url, none);
+  mask-image: var(--ink-mask-url, none);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.project-slide.ink-screen .project-details,
+.project-slide.ink-screen .project-close,
+.project-slide.ink-screen .project-expand { pointer-events: auto; }
+.project-slide.ink-screen .project-slide-label {
+  position: absolute;
+  z-index: 2;
+  left: 4.5%;
+  right: 4.5%;
+  bottom: 18px;
+  padding: 0;
+  color: var(--overlay-foreground);
+  text-shadow: 0 1px 8px rgb(0 0 0 / .45);
 }

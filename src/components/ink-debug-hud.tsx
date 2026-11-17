@@ -57,9 +57,11 @@ export function InkDebugHud() {
       }
     };
     window.addEventListener("keydown", onKey);
-    // ?hud ouvre le panneau au chargement ; sinon, dernier état mémorisé.
+    // ?hud ouvre le panneau au chargement ; l'atelier (/atelier) l'ouvre
+    // aussi automatiquement — c'est son but. Sinon, dernier état mémorisé.
     if (
       new URLSearchParams(window.location.search).has("hud") ||
+      window.location.pathname === "/atelier" ||
       localStorage.getItem("ink-hud") === "1"
     )
       setOpen(true);
@@ -130,9 +132,21 @@ export function InkDebugHud() {
             <button
               type="button"
               className="ink-hud-copy"
-              onClick={() =>
-                navigator.clipboard?.writeText(JSON.stringify(inkEdgeSettings, null, 2))
-              }
+              // navigator.clipboard n'existe que dans un contexte sécurisé
+              // (localhost ou https) : avec l'URL réseau en http, on passe
+              // par un repli (textarea caché + execCommand).
+              onClick={async (e) => {
+                const json = JSON.stringify(inkEdgeSettings, null, 2);
+                const ok = await copyText(json);
+                const btn = e.currentTarget;
+                btn.textContent = ok ? "Copié !" : "Copie impossible";
+                setTimeout(() => {
+                  btn.textContent = "Copier les réglages";
+                }, 1500);
+                if (ok) return;
+                // Plan C : montrer le JSON pour copie manuelle.
+                prompt("Copie manuelle des réglages :", json);
+              }}
             >
               Copier les réglages
             </button>
@@ -146,4 +160,28 @@ export function InkDebugHud() {
 function useReducerTick() {
   const [tick, dispatch] = useState(0);
   return [tick, () => dispatch((t) => t + 1)] as const;
+}
+
+// Copie presse-papiers avec replis : API async (contexte sécurisé), puis
+// execCommand sur textarea caché (http + vieux navigateurs).
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard?.writeText(text);
+    return true;
+  } catch {
+    // continuation : repli execCommand
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
 }

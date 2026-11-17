@@ -10,9 +10,13 @@ import {
   FIELD_SPAN,
   INK_BAKE_BASE,
   harmonicMask,
-  loadSvgMask,
+  harmonicMaskScreen,
+  loadSvgElement,
   maskToFieldTexture,
+  rasterizeSvgScreen,
   rebakeFieldTexture,
+  screenFieldHeight,
+  screenFieldWidth,
   shapeSeed,
 } from "@/components/ink-shape-field";
 import { INK_SHAPE_URLS } from "@/components/ink-shapes";
@@ -50,22 +54,22 @@ export type InkEdgeSettings = {
 };
 
 export const inkEdgeDefaults: InkEdgeSettings = {
-  baseRadius: 0.34,
-  harm: 1,
+  baseRadius: 0.49, // 1 = demi-hauteur du cadre (SVG plein écran : sans effet dessus)
+  harm: 0.3, // échelle des harmoniques angulaires (irrégularité de forme)
   morph: 0,
-  power: 3,
-  softness: 0.05,
-  spread: 4,
-  soakDist: 0.22,
-  rimLag: 0.11,
-  edgeTint: 0.55,
-  pulse: 0.025,
-  pulseSpeed: 0.5,
-  drift: 0.015,
-  driftSpeed: 0.2,
-  noiseScale: 2.6,
-  octaves: 6,
-  contrast: 0.55,
+  power: 8,
+  softness: 0.3,
+  spread: 12,
+  soakDist: 0.05,
+  rimLag: 0,
+  edgeTint: 0,
+  pulse: 0, // respiration coupée par défaut : gros gain GPU (rendu à la demande)
+  pulseSpeed: 0,
+  drift: 0, // dérive du bruit coupée par défaut (même raison)
+  driftSpeed: 0,
+  noiseScale: 1,
+  octaves: 1,
+  contrast: 1,
   ink: "#3b4a63",
 };
 
@@ -88,6 +92,7 @@ const blobFragment = `
   uniform float uShapeScale; // échelle live du patatoïde (baseRadius / base de recuit)
   uniform float uMorph;      // 0 = forme de début, 1 = forme de fin
   uniform float uFieldSpan;
+  uniform float uScreenMap;  // 1 = champs recuits en espace écran plein cadre
   uniform vec3 uInk;
   uniform float uPower;
   uniform float uSharpMin;
@@ -111,6 +116,13 @@ const blobFragment = `
     return smoothstep(uSharpMin, uSharpMax, intensity);
   }
 
+  // UV d'échantillonnage d'un front reculé d'un facteur s le long des
+  // axes (s = pulse·échelle, ou rimLag inclus pour le front B) :
+  // pos/(domaine·s) recentre et applique le recul, v retourné (canvas).
+  vec2 frontUv(vec2 p, vec2 domain, float s) {
+    return vec2(p.x, -p.y) / (domain * s) + 0.5;
+  }
+
   void main() {
     // Coordonnées centrées, unité = demi-hauteur.
     vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0);
@@ -119,12 +131,15 @@ const blobFragment = `
     // re-multiplier revient exactement à agrandir la silhouette.
     float pulse = 1.0 + uPulse * sin(uTime * uPulseSpeed + uShape.z);
     float g = pulse * uShapeScale;
-    vec2 q = p / g;
+
+    // Domaine TEXTE de recuit des champs : carré [-SPAN, SPAN] (legacy) ou
+    // rectangle plein écran (largeur = aspect, hauteur = 1) en mode écran.
+    vec2 fieldDomain =
+      uScreenMap > 0.5 ? vec2(uAspect, 1.0) : vec2(2.0 * uFieldSpan);
 
     // Field = champ signé du patatoïde (unités monde) : mélange des deux
-    // SDF recuites (début / fin) pondéré par uMorph. La texture étant
-    // rangée canvas (y vers le bas), l'axe v est retourné ici.
-    vec2 fu = vec2(q.x, -q.y) / (2.0 * uFieldSpan) + 0.5;
+    // SDF recuites (début / fin) pondéré par uMorph.
+    vec2 fu = frontUv(p, fieldDomain, g);
     float field = mix(texture2D(uFieldA, fu).r, texture2D(uFieldB, fu).r, uMorph) * g;
 
     // Bruit aquarelle à trois canaux, prélevé avec une dérive lente.
@@ -140,7 +155,7 @@ const blobFragment = `
     // Deux fronts décalés : c'est leur désaccord qui dessine le liseré d'encre.
     // Le front B recule d'une fraction rimLag le long du rayon — l'identité
     // d'origine edge*(1-lag) - r s'écrit (1-lag) * field(p / ((1-lag) * g)) * g.
-    vec2 fuB = vec2(p.x, -p.y) / ((1.0 - uRimLag) * g * 2.0 * uFieldSpan) + 0.5;
+    vec2 fuB = frontUv(p, fieldDomain, (1.0 - uRimLag) * g);
     float fieldB = mix(texture2D(uFieldA, fuB).r, texture2D(uFieldB, fuB).r, uMorph)
       * (1.0 - uRimLag) * g;
     float a = maskOf(mix(noise.x, 1.0, soak), field);
@@ -163,7 +178,7 @@ const morphEase = (t: number) => t * t * (3 - 2 * t);
 
 // L'espace visible d'un cadre 4/3 atteint ~0.83 en x (demi-hauteur = 1) :
 // la zone de champ utile reste dans le domaine du recuit.
-const EMPTY_MASK = () => new Uint8Array(FIELD_RES * FIELD_RES);
+const EMPTY_MASK = (n: number) => new Uint8Array(n);
 
 // Variante de fin par défaut : une autre graine d'harmoniques, de façon que
 // le curseur de morphing montre une vraie métamorphose avant tout réglage.
@@ -174,6 +189,8 @@ type FieldSlot = {
   // Variante harmonique recuite dans ce champ (null après un recuit SVG).
   harmonicVariant: number | null;
   bakedHarm: number;
+  // Source SVG éventuelle (image chargée, re-rastérisable au resize).
+  svg: { url: string; img: HTMLImageElement } | null;
 };
 
 /**
@@ -217,29 +234,103 @@ export function InkBlobImage({
     // La forme du patatoïde est dessinée par le shader : plus de clipping
     // border-radius lisse (la classe .ink-shaped le neutralise en CSS).
     host.closest(".project-blob")?.classList.add("ink-shaped");
+    // Mode écran : le patatoïde couvre tout le cadre de la scène — la slide
+    // passe plein écran (voir .project-slide.ink-screen dans styles.css).
+    const inkSlide = host.closest<HTMLElement>(".project-slide");
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    // ——— Champs de forme (SDF) : départ / fin. Par défaut, les deux sont
-    // recuits depuis le patatoïde harmonique de la variante (rendu identique
-    // à l'ancien calcul angulaire) ; les SVG déclarés dans ink-shapes.ts
-    // remplacent chaque champ dès qu'ils sont chargés.
+    // ——— Champs de forme (SDF) : départ / fin.
+    // Legacy (aucun SVG sculpté pour la variante) : les deux champs sont
+    // recuits depuis le patatoïde harmonique (domaine carré [-SPAN, SPAN],
+    // taille réglée en live par uShapeScale = baseRadius / INK_BAKE_BASE).
+    // Écran (au moins un SVG sculpté) : les deux champs sont recuits en
+    // espace plein cadre — le domaine SVG [0..1000]² tombe sur l'écran
+    // entier — et recalés à chaque changement d'aspect.
+    const overrides = INK_SHAPE_URLS[variant] ?? {};
+    const screenMode = !!(overrides.start || overrides.end);
+
+    // Aspect initial du cadre (rectifié par resize() au fil des frames).
+    const hostAspect0 =
+      host.clientWidth && host.clientHeight ? host.clientWidth / host.clientHeight : 1;
+    let hostAspect = hostAspect0;
+    if (screenMode && inkSlide) inkSlide.classList.add("ink-screen");
+    // Grille écran calée sur les pixels du cadre : un texel ≈ 1 px CSS
+    // (sinon les marches du recuit se voient — bords granuleux).
+    const fieldH = () =>
+      screenMode ? screenFieldHeight(hostAspect, host.clientHeight || undefined) : FIELD_RES;
+    const fieldW = () => (screenMode ? screenFieldWidth(fieldH(), hostAspect) : FIELD_RES);
+    // Texels par unité monde : écran = hauteur de grille (1 unité = hauteur
+    // du cadre) ; legacy = FIELD_RES / (2·SPAN).
+    const texelsPerUnit = () => (screenMode ? fieldH() : FIELD_RES / (2 * FIELD_SPAN));
+
     const slots: [FieldSlot, FieldSlot] = [
       {
-        texture: maskToFieldTexture(harmonicMask(variant, inkEdgeSettings.harm) ?? EMPTY_MASK()),
+        texture: maskToFieldTexture(
+          harmonicMask(variant, inkEdgeSettings.harm) ?? EMPTY_MASK(FIELD_RES * FIELD_RES),
+          FIELD_RES,
+          FIELD_RES,
+          texelsPerUnit(),
+        ),
         harmonicVariant: variant,
         bakedHarm: inkEdgeSettings.harm,
+        svg: null,
       },
       {
         texture: maskToFieldTexture(
-          harmonicMask(variant + END_VARIANT_OFFSET, inkEdgeSettings.harm) ?? EMPTY_MASK(),
+          harmonicMask(variant + END_VARIANT_OFFSET, inkEdgeSettings.harm) ??
+            EMPTY_MASK(FIELD_RES * FIELD_RES),
+          FIELD_RES,
+          FIELD_RES,
+          texelsPerUnit(),
         ),
         harmonicVariant: variant + END_VARIANT_OFFSET,
         bakedHarm: inkEdgeSettings.harm,
+        svg: null,
       },
     ];
     const ownedTextures = [...slots.map((s) => s.texture)];
+
+    // État rendu à la dernière frame (rendu à la demande) : chaîne vide =
+    // « rendu périmé, à refaire » (positionné aussi par resize et bakeSlot).
+    let lastSnapshot = "";
+
+    // Recuit d'un champ dans ses dimensions courantes (masque à faculté
+    // harmonique patate ou SVG sculpté) — remplace aussi la texture si la
+    // hauteur de grille a changé (aspect différent).
+    const bakeSlot = (slotIndex: 0 | 1) => {
+      const slot = slots[slotIndex]!;
+      const w = fieldW();
+      const h = fieldH();
+      const tpu = texelsPerUnit();
+      const mask = slot.svg
+        ? rasterizeSvgScreen(slot.svg.img, w, h)?.mask
+        : screenMode
+          ? harmonicMaskScreen(
+              slot.harmonicVariant ?? variant,
+              inkEdgeSettings.harm,
+              inkEdgeSettings.baseRadius,
+              w,
+              h,
+            )
+          : harmonicMask(slot.harmonicVariant ?? variant, inkEdgeSettings.harm);
+      if (!mask) return;
+      if (slot.texture.image.width === w && slot.texture.image.height === h) {
+        rebakeFieldTexture(slot.texture, mask, tpu);
+        slot.bakedHarm = inkEdgeSettings.harm;
+      } else {
+        const next = maskToFieldTexture(mask, w, h, tpu);
+        ownedTextures.push(next);
+        const old = slot.texture;
+        slots[slotIndex] = { ...slot, texture: next };
+        uniforms[slotIndex === 0 ? "uFieldA" : "uFieldB"].value = next;
+        old.dispose();
+        const ownedIndex = ownedTextures.indexOf(old);
+        if (ownedIndex >= 0) ownedTextures.splice(ownedIndex, 1);
+      }
+      lastSnapshot = ""; // recuit = nouveau contenu : forcer un rendu
+    };
 
     const uniforms = {
       uMap: { value: null as THREE.Texture | null },
@@ -253,6 +344,7 @@ export function InkBlobImage({
       uShapeScale: { value: 1 },
       uMorph: { value: 0 },
       uFieldSpan: { value: FIELD_SPAN },
+      uScreenMap: { value: screenMode ? 1 : 0 },
       uInk: { value: cssColorToRawSrgb(inkEdgeSettings.ink) },
       uPower: { value: inkEdgeSettings.power },
       uSharpMin: { value: 1 - inkEdgeSettings.softness },
@@ -296,41 +388,65 @@ export function InkBlobImage({
     uniforms.uNoise.value = noise.texture;
 
     // ——— Réglages SVG sculptés : chaque champ est remplacé dès que l'image
-    // est prête (échec silencieux → recuit harmonique conservé).
-    const overrides = INK_SHAPE_URLS[variant] ?? {};
+    // est prête (échec silencieux → recuit harmonique conservé). L'image
+    // chargée reste accrochée au slot pour re-rastériser au resize.
     const loadSvgInto = async (slotIndex: 0 | 1, url: string | undefined) => {
       if (!url) return;
-      const mask = await loadSvgMask(url);
-      if (disposed || !mask) {
+      const img = await loadSvgElement(url);
+      if (disposed) return; // démontage (StrictMode double-passe) : silencieux
+      if (!img) {
         console.warn(
           `Patatoïde ${variant} : forme SVG « ${slotIndex === 0 ? "début" : "fin"} » ignorée (${url ?? "aucune URL"})`,
         );
         return;
       }
-      const texture = maskToFieldTexture(mask);
-      ownedTextures.push(texture);
-      const old = slots[slotIndex].texture;
-      slots[slotIndex] = { texture, harmonicVariant: null, bakedHarm: 0 };
-      uniforms[slotIndex === 0 ? "uFieldA" : "uFieldB"].value = texture;
-      old.dispose();
-      const ownedIndex = ownedTextures.indexOf(old);
-      if (ownedIndex >= 0) ownedTextures.splice(ownedIndex, 1);
+      const slot = slots[slotIndex]!;
+      slots[slotIndex] = { ...slot, svg: { url, img }, harmonicVariant: null, bakedHarm: 0 };
+      bakeSlot(slotIndex);
+      // Mode écran + forme de fin chargée : le SVG d'arrivée sert aussi de
+      // masque CSS (var --ink-mask-url, appliquée à .project-details dans
+      // styles.css, étirée 100%×100% comme le mapping du shader) — les
+      // contenus DOM du panneau restent à l'intérieur de la forme.
+      if (screenMode && slotIndex === 1 && inkSlide) {
+        inkSlide.style.setProperty("--ink-mask-url", `url('${url}')`);
+      }
     };
     void loadSvgInto(0, overrides.start);
     void loadSvgInto(1, overrides.end);
 
     let raf = 0;
 
+    let lastBakedAspect = hostAspect0;
+    let rebakeTimer = 0;
     const resize = () => {
       const w = host.clientWidth;
       const h = host.clientHeight;
       if (!w || !h) return;
-      const hostAspect = w / h;
+      hostAspect = w / h;
       renderer.setSize(w, h, false);
       uniforms.uAspect.value = hostAspect;
+      lastSnapshot = ""; // le resize vide le canvas : forcer un rendu frais
       // Recadrage « cover » : l'image remplit le cadre sans déformation.
       if (imageAspect > hostAspect) uniforms.uCover.value.set(hostAspect / imageAspect, 1);
       else uniforms.uCover.value.set(1, imageAspect / hostAspect);
+      // Mode écran : la grille des champs est calée sur le cadre — au
+      // changement d'aspect OU de dimensions (rotation, fenêtre, premier
+      // passage clientHeight connu), re-recuit débounce des 2 champs.
+      if (
+        screenMode &&
+        (Math.abs(hostAspect - lastBakedAspect) > 0.004 ||
+          slots.some(
+            (s) => s.texture.image.width !== fieldW() || s.texture.image.height !== fieldH(),
+          ))
+      ) {
+        window.clearTimeout(rebakeTimer);
+        rebakeTimer = window.setTimeout(() => {
+          if (disposed) return;
+          lastBakedAspect = hostAspect;
+          bakeSlot(0);
+          bakeSlot(1);
+        }, 250);
+      }
     };
 
     const texture = new THREE.TextureLoader().load(src, (loaded) => {
@@ -348,11 +464,14 @@ export function InkBlobImage({
     const still = prefersReducedMotion() ? 0 : 1;
     const start = performance.now();
     let shapeHarmBaked = inkEdgeSettings.harm;
+    let shapeBaseBaked = inkEdgeSettings.baseRadius;
     let lastHarmRebake = 0;
     const REBAKE_MIN_GAP = 300; // ms entre deux recuits harmoniques (curseur harm en drag)
     // Le morphing peut être piloté au scroll : l'attribut data-ink-morph
-    // (écrit par la chorégraphie GSAP du rail) prend le pas sur le HUD.
-    const scrollMorphSource = host.closest<HTMLElement>(".project-blob");
+    // (écrit par la chorégraphie GSAP sur .project-slide) prend le pas sur
+    // le HUD. On cherche l'attribut sur l'ancêtre qui le porte — PAS
+    // .project-blob, qui est un descendant de la slide et ne le reçoit pas.
+    const scrollMorphSource = host.closest<HTMLElement>("[data-ink-morph]");
     const frame = (now: number) => {
       // Réglages partagés (HUD) relus à chaque frame : tout est réglable en live.
       const s = inkEdgeSettings;
@@ -373,26 +492,29 @@ export function InkBlobImage({
         baked = { ...baked, ink: s.ink };
         uniforms.uInk.value = cssColorToRawSrgb(s.ink);
       }
-      // Recuit des champs harmoniques quand l'irrégularité a changé :
-      // morcelé dans le temps (un recuit EDT coûte quelques dizaines de ms).
-      if (s.harm !== shapeHarmBaked && now - lastHarmRebake > REBAKE_MIN_GAP) {
+      // Recuit des champs quand la géométrie harmonique a changé (curseurs
+      // harm / baseRadius en drag) : morcelé dans le temps (un recuit EDT
+      // coûte quelques dizaines de ms). Mode écran : la taille est portée
+      // par le recuit lui-même (uShapeScale reste 1) ; legacy : uShapeScale.
+      const shapeDirty =
+        s.harm !== shapeHarmBaked || (screenMode && s.baseRadius !== shapeBaseBaked);
+      if (shapeDirty && now - lastHarmRebake > REBAKE_MIN_GAP) {
         let dirty = false;
-        for (const slot of slots) {
+        for (const slotIndex of [0, 1] as const) {
+          const slot = slots[slotIndex]!;
           if (slot.harmonicVariant !== null) {
-            const mask = harmonicMask(slot.harmonicVariant, s.harm);
-            if (mask) {
-              rebakeFieldTexture(slot.texture, mask);
-              slot.bakedHarm = s.harm;
-              dirty = true;
-            }
+            bakeSlot(slotIndex);
+            slot.bakedHarm = s.harm;
+            dirty = true;
           }
         }
         if (dirty) {
           lastHarmRebake = now;
           shapeHarmBaked = s.harm;
+          shapeBaseBaked = s.baseRadius;
         }
       }
-      uniforms.uShapeScale.value = s.baseRadius / INK_BAKE_BASE;
+      uniforms.uShapeScale.value = screenMode ? 1 : s.baseRadius / INK_BAKE_BASE;
       const attrMorph = scrollMorphSource?.dataset["inkMorph"];
       const morph =
         attrMorph !== undefined && attrMorph !== "" ? Number.parseFloat(attrMorph) : s.morph;
@@ -411,7 +533,46 @@ export function InkBlobImage({
       uniforms.uTime.value = ((now - start) / 1000) * still * 1;
       // Pas de flash noir : le patatoïde n'apparaît qu'une fois la photo chargée.
       mesh.visible = uniforms.uMap.value !== null;
-      renderer.render(scene, camera);
+
+      // Rendu à la demande : la seule chose dépendante du temps est la
+      // respiration et la dérive du bruit (les deux par uTime). Les deux
+      // nulles → image statique : on ne redessine que si un réglage, le
+      // morphing au scroll ou la visibilité de la slide a changé — et pas
+      // du tout pour une slide cachée (les 6 canvases ne rendent jamais
+      // ensemble, GPU au repos sinon).
+      const slideHidden =
+        inkSlide?.style.visibility === "hidden" || inkSlide?.style.opacity === "0";
+      const animating = still > 0 && (uniforms.uPulse.value !== 0 || uniforms.uDrift.value !== 0);
+      const snapshot = slideHidden
+        ? "hidden"
+        : [
+            morph,
+            s.harm,
+            s.baseRadius,
+            s.power,
+            s.softness,
+            s.spread,
+            s.soakDist,
+            s.rimLag,
+            s.edgeTint,
+            s.ink,
+            s.pulse,
+            s.pulseSpeed,
+            s.drift,
+            s.driftSpeed,
+            s.octaves,
+            s.noiseScale,
+            s.contrast,
+            mesh.visible ? 1 : 0,
+          ].join("|");
+      if (slideHidden) {
+        // Mémorisé même caché : au retour de visibilité le snapshot diffère
+        // (il repasse de « hidden » à l'état long) et déclenche un rendu frais.
+        lastSnapshot = snapshot;
+      } else if (animating || snapshot !== lastSnapshot) {
+        renderer.render(scene, camera);
+        lastSnapshot = snapshot;
+      }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
@@ -421,6 +582,8 @@ export function InkBlobImage({
       cancelAnimationFrame(raf);
       observer.disconnect();
       host.closest(".project-blob")?.classList.remove("ink-shaped");
+      inkSlide?.classList.remove("ink-screen");
+      inkSlide?.style.removeProperty("--ink-mask-url");
       texture.dispose();
       noise.dispose();
       for (const t of ownedTextures) t.dispose();

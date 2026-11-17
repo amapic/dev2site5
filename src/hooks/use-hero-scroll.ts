@@ -61,7 +61,7 @@ export function useHomeScroll() {
       if (hero) {
         floatY = gsap.to(hero, {
           y: -14,
-          duration: 2.4,
+          duration: 8,
           ease: "sine.inOut",
           repeat: -1,
           yoyo: true,
@@ -72,7 +72,7 @@ export function useHomeScroll() {
           { rotation: -0.8 },
           {
             rotation: 0.8,
-            duration: 3.8,
+            duration: 12,
             ease: "sine.inOut",
             repeat: -1,
             yoyo: true,
@@ -151,9 +151,11 @@ export function useHomeScroll() {
         // Morphing du patatoïde pendant la pose : l'attribut data-ink-morph
         // (0 → 1) est relu par InkBlobImage à chaque frame — le shader mixe
         // alors ses deux SDF recuites, forme de début → forme de fin.
+        // Fini à t+0.65 : le patatoïde garde ensuite sa forme d'arrivée,
+        // immobile, pendant la plage de pose (t+0.65 → t+0.8) avant l'envol.
         tl.set(slide, { attr: { "data-ink-morph": 0 } }, t).to(
           slide,
-          { attr: { "data-ink-morph": 1 }, duration: 0.5 },
+          { attr: { "data-ink-morph": 1 }, duration: 0.4 },
           t + 0.25,
         );
         // Le bouton « Aperçu » n'est actif que pendant l'arrêt au centre droit
@@ -164,14 +166,14 @@ export function useHomeScroll() {
             { autoAlpha: 0, scale: 0.85 },
             { autoAlpha: 1, scale: 1, duration: 0.12 },
             t + 0.3,
-          ).to(expandBtn, { autoAlpha: 0, scale: 0.85, duration: 0.12 }, t + 0.55);
+          ).to(expandBtn, { autoAlpha: 0, scale: 0.85, duration: 0.12 }, t + 0.82);
         }
-        // Sortie : une fois le morphing achevé, le patatoïde s'échappe en bas
+        // Sortie : après la plage d'immobilité, le patatoïde s'échappe en bas
         // droit et disparaît (autoAlpha → 0 et visibility:hidden).
         tl.to(
           slide,
-          { xPercent: 40, yPercent: 120, autoAlpha: 0, rotate: -6, duration: 0.25 },
-          t + 0.75,
+          { xPercent: 40, yPercent: 120, autoAlpha: 0, rotate: -6, duration: 0.2 },
+          t + 0.8,
         );
       });
 
@@ -197,6 +199,26 @@ export function useHomeScroll() {
         );
       }
     }, stage);
+
+    // Au chargement : se positionner sur la plage de pose du 1er projet —
+    // la forme d'arrivée pleinement visible et immobile (fin du morphing
+    // t=1.65, envol à t=1.8 ; unité de scroll = 100vh). Le saut est différé
+    // et réessayé : Lenis (monté dans un useEffect plus tardif) et le
+    // routeur (scrollRestoration) réécrivent le scroll après le layout
+    // effect. Reprise profonde (retour arrière) : on ne touche pas au scroll.
+    let settleChecks = 0;
+    const holdY = () => Math.round(1.72 * window.innerHeight);
+    const settle = () => {
+      if (Math.abs(window.scrollY - holdY()) <= 40) return; // la position tient
+      if (settleChecks === 0 && window.scrollY > 200) return; // reprise profonde
+      const lenis = (
+        window as unknown as { __lenis?: { scrollTo: (t: number, o?: object) => void } }
+      ).__lenis;
+      if (lenis) lenis.scrollTo(holdY(), { immediate: true, force: true });
+      else window.scrollTo(0, holdY());
+      if (++settleChecks < 5) window.setTimeout(settle, 150);
+    };
+    window.setTimeout(settle, 250);
 
     return () => ctx.revert();
   }, []);

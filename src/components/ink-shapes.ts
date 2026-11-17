@@ -13,5 +13,5 @@
 /* ------------------------------------------------------------------ */
 
 export const INK_SHAPE_URLS: Record<number, { start?: string; end?: string }> = {
-  // 0: { start: '/shapes/blob-0-depart.svg', end: '/shapes/blob-0-arrivee.svg' },
+  0: { start: '/shapes/blob-0-depart.svg', end: '/shapes/blob-0-arrivee.svg' },
 };

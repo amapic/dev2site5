@@ -14,7 +14,13 @@ export function useSmoothScroll() {
 
     const lenis = new Lenis({ autoRaf: true });
     lenis.on('scroll', ScrollTrigger.update);
-    return () => lenis.destroy();
+    // Exposé pour les sauts programmatiques (window.scrollTo serait écrasé
+    // par la boucle interne de Lenis).
+    (window as unknown as { __lenis?: Lenis | undefined }).__lenis = lenis;
+    return () => {
+      (window as unknown as { __lenis?: Lenis | undefined }).__lenis = undefined;
+      lenis.destroy();
+    };
   }, []);
 }
 
