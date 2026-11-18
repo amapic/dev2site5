@@ -1,11 +1,21 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { X } from 'lucide-react';
-import { Arrow, Footer, meta, projects } from '@/components/portfolio';
-import { InkBlobImage } from '@/components/ink-blob-image';
-import { useHomeScroll } from '@/hooks/use-hero-scroll';
-import cyclist from '@/assets/cyclist.jpg';
-export const Route = createFileRoute('/')({ head: () => meta('Amaury — Portfolio créatif', 'Un regard libre sur la direction artistique, la photographie et les expériences visuelles.'), component: Index });
+import { useLayoutEffect, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { X } from "lucide-react";
+import { Arrow, Footer, meta, projects } from "@/components/portfolio";
+import { BlobSvg } from "@/components/blob-svg";
+import { HANDWRITING_FONT_HREF, ManuscritUnderlay } from "@/components/manuscrit-underlay";
+import { useHomeScroll } from "@/hooks/use-hero-scroll";
+import cyclist from "@/assets/cyclist.jpg";
+export const Route = createFileRoute("/")({
+  head: () => ({
+    ...meta(
+      "Amaury — Portfolio créatif",
+      "Un regard libre sur la direction artistique, la photographie et les expériences visuelles.",
+    ),
+    links: [{ rel: "stylesheet", href: HANDWRITING_FONT_HREF }],
+  }),
+  component: Index,
+});
 
 const BLOB_SHAPES = 5; // nombres de variantes de patatoïdes répétées pour .project-slide.blob-N
 
@@ -17,40 +27,66 @@ function ProjectSlide({ project, index }: { project: (typeof projects)[number]; 
   const expand = (next: boolean) => {
     setExpanded(next);
     // Figé le scroll pendant la vue agrandie (Lenis quand dispo, sinon overflow natif)
-    const lenis = (window as unknown as { __lenis?: { start: () => void; stop: () => void } }).__lenis;
+    const lenis = (window as unknown as { __lenis?: { start: () => void; stop: () => void } })
+      .__lenis;
     bodyLock(next);
-    if (next) lenis?.stop(); else lenis?.start();
+    if (next) lenis?.stop();
+    else lenis?.start();
   };
 
   return (
     <article
-      className={`project-slide blob-${index % BLOB_SHAPES}${expanded ? ' is-expanded' : ''}`}
+      className={`project-slide blob-${index % BLOB_SHAPES}${expanded ? " is-expanded" : ""}`}
       data-project-id={project.id}
     >
       <div className="project-blob">
-        <InkBlobImage src={project.image} alt={project.title} variant={index % BLOB_SHAPES} />
-        {/* Détails du projet — contenus à remplir plus tard */}
-        <div className="project-details">
-          <p className="project-details-id">{project.id}</p>
-          <h2>{project.title}</h2>
-          <p className="project-details-meta">{project.category} — {project.year}</p>
-          <p className="project-details-body">{project.description || 'Description du projet à venir.'}</p>
-        </div>
-        <button type="button" className="project-expand" onClick={() => expand(true)} aria-label={`Agrandir ${project.title}`}>
+        {/* Patatoïde SVG sans shader : photo + détails HTML découpés dans la
+            forme, qui morphe de sa forme de départ vers sa forme d'arrivée */}
+        {/* Contenu React libre par projet (project.panel) ou métadonnées par défaut */}
+        <BlobSvg src={project.image} alt={project.title} variant={index % BLOB_SHAPES}>
+          {project.panel ?? (
+            <div className="project-details">
+              <p className="project-details-id">{project.id}</p>
+              <h2>{project.title}</h2>
+              <p className="project-details-meta">
+                {project.category} — {project.year}
+              </p>
+              <p className="project-details-body">
+                {project.description || "Description du projet à venir."}
+              </p>
+            </div>
+          )}
+        </BlobSvg>
+        <button
+          type="button"
+          className="project-expand"
+          onClick={() => expand(true)}
+          aria-label={`Agrandir ${project.title}`}
+        >
           Aperçu <img src="/fleche.png" alt="" className="project-arrow" width={15} height={15} />
         </button>
-        <button type="button" className="project-close" onClick={() => expand(false)} aria-label={`Refermer ${project.title}`}>
+        <button
+          type="button"
+          className="project-close"
+          onClick={() => expand(false)}
+          aria-label={`Refermer ${project.title}`}
+        >
           <X size={18} aria-hidden="true" />
         </button>
       </div>
-      <p className="project-slide-label"><span>{project.title}</span><span>{project.category} — {project.year}</span></p>
+      <p className="project-slide-label">
+        <span>{project.title}</span>
+        <span>
+          {project.category} — {project.year}
+        </span>
+      </p>
     </article>
   );
 }
 
 // Verrou natif sur le body — en complément de Lenis (déjà stoppé au besoin)
 function bodyLock(locked: boolean | undefined) {
-  document.body.style.overflow = locked ? 'hidden' : '';
+  document.body.style.overflow = locked ? "hidden" : "";
 }
 
 function Index() {
@@ -67,10 +103,10 @@ function Index() {
     if (!content || !title || !text) return;
 
     // Pour compenser le side bearing gauche du premier glyphe (l'encre doit toucher le bord gauche)
-    const measure = document.createElement('canvas').getContext('2d');
+    const measure = document.createElement("canvas").getContext("2d");
 
     const fit = () => {
-      title.style.fontSize = '100px';
+      title.style.fontSize = "100px";
       const natural = text.getBoundingClientRect().width;
       const target = content.clientWidth;
       if (natural > 0 && target > 0) {
@@ -79,7 +115,10 @@ function Index() {
         if (measure) {
           measure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
           // actualBoundingBoxLeft < 0 quand l'encre commence à droite du point d'origine
-          const leftGap = Math.max(0, -(measure.measureText(text.textContent?.charAt(0) ?? '').actualBoundingBoxLeft ?? 0));
+          const leftGap = Math.max(
+            0,
+            -(measure.measureText(text.textContent?.charAt(0) ?? "").actualBoundingBoxLeft ?? 0),
+          );
           text.style.marginLeft = `${-leftGap}px`;
         }
       }
@@ -94,18 +133,72 @@ function Index() {
 
   return (
     <section className="hero-stage" ref={stageRef}>
+      {/* Feuille manuscrite derrière tout : le hero la révèle en se rangeant en médaillon,
+          puis elle sert de fond aux projets et au footer (la scène est épinglée par GSAP) */}
+      <div className="hero-manuscrit" aria-hidden="true">
+        <ManuscritUnderlay />
+      </div>
       <section className="hero">
-        <img src={cyclist} width={1920} height={1088} alt="Un cycliste sur une route de campagne, entre mouvement et nature" className="hero-photo" fetchPriority="high" />
+        <img
+          src={cyclist}
+          width={1920}
+          height={1088}
+          alt="Un cycliste sur une route de campagne, entre mouvement et nature"
+          className="hero-photo"
+          fetchPriority="high"
+        />
         <div className="hero-content" ref={contentRef}>
-          <div className="hero-eyebrow"><span>Portfolio indépendant / Édition 2026</span><span>Un regard, des idées.</span></div>
-          <h1 className="mega-title" ref={titleRef}><span className="whitespace-pre">DEV2SITE  </span></h1>
-          <div className="hero-caption"><p>Créer des images. Faire bouger les lignes.<br />Direction artistique & photographie <Arrow size={22} /></p><p className="right">Un portfolio par Amaury<br />Sélection 2026</p></div>
-          <p className="hero-note">Je pars d’une idée, d’un détail, d’une envie de faire autrement. Entre direction artistique, photographie et explorations visuelles, je construis des univers qui ont quelque chose à raconter. Voici une sélection de ce qui m’anime.</p>
+          <div className="hero-eyebrow">
+            <span>Portfolio indépendant / Édition 2026</span>
+            <span>Un regard, des idées.</span>
+          </div>
+          <h1 className="mega-title" ref={titleRef}>
+            <span className="whitespace-pre">DEV2SITE </span>
+          </h1>
+          <div className="hero-caption">
+            <p>
+              Créer des images. Faire bouger les lignes.
+              <br />
+              Direction artistique & photographie <Arrow size={22} />
+              En vélo des destinations éloignées ont soudain l'air tres proche
+            </p>
+            <p className="right">
+              Un portfolio par Amaury
+              <br />
+              Sélection 2026
+            </p>
+          </div>
+          <p className="hero-note">
+            Je pars d’une idée, d’un détail, d’une envie de faire autrement. Entre direction
+            artistique, photographie et explorations visuelles, je construis des univers qui ont
+            quelque chose à raconter. Voici une sélection de ce qui m’anime.
+          </p>
         </div>
-        <div className="hero-bottom"><span>01 — LE REGARD</span><Link to="/projets" className="flex items-center gap-3 text-overlay-foreground">Découvrir les projets <span className="round-link"><Arrow size={20} /></span></Link><Arrow size={16} /></div>
+        <div className="hero-bottom">
+          <span>01 — LE REGARD</span>
+          {/* Pointe le scroll vers la chorégraphie des projets (l'ancienne page /projets n'existe plus) */}
+          <button
+            type="button"
+            className="flex cursor-pointer items-center gap-3 text-overlay-foreground"
+            onClick={() => {
+              const lenis = (window as unknown as { __lenis?: { scrollTo: (t: number) => void } })
+                .__lenis;
+              if (lenis) lenis.scrollTo(window.innerHeight);
+              else window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+            }}
+          >
+            Découvrir les projets{" "}
+            <span className="round-link">
+              <Arrow size={20} />
+            </span>
+          </button>
+          <Arrow size={16} />
+        </div>
       </section>
       <div className="project-rail">
-        {projects.map((project, i) => <ProjectSlide key={project.id} project={project} index={i} />)}
+        {projects.map((project, i) => (
+          <ProjectSlide key={project.id} project={project} index={i} />
+        ))}
       </div>
       <Footer />
     </section>

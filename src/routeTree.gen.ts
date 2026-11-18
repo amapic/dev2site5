@@ -14,8 +14,8 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as ChocRouteImport } from './routes/choc'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as LaboRouteImport } from './routes/labo'
+import { Route as ManuscritRouteImport } from './routes/manuscrit'
 import { Route as NavBulleRouteImport } from './routes/nav-bulle'
-import { Route as ProjetsRouteImport } from './routes/projets'
 import { Route as VideoRouteImport } from './routes/video'
 
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +43,14 @@ const LaboRoute = LaboRouteImport.update({
   path: '/labo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManuscritRoute = ManuscritRouteImport.update({
+  id: '/manuscrit',
+  path: '/manuscrit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NavBulleRoute = NavBulleRouteImport.update({
   id: '/nav-bulle',
   path: '/nav-bulle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjetsRoute = ProjetsRouteImport.update({
-  id: '/projets',
-  path: '/projets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VideoRoute = VideoRouteImport.update({
@@ -65,8 +65,8 @@ export interface FileRoutesByFullPath {
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
+  '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
-  '/projets': typeof ProjetsRoute
   '/video': typeof VideoRoute
 }
 export interface FileRoutesByTo {
@@ -75,8 +75,8 @@ export interface FileRoutesByTo {
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
+  '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
-  '/projets': typeof ProjetsRoute
   '/video': typeof VideoRoute
 }
 export interface FileRoutesById {
@@ -86,8 +86,8 @@ export interface FileRoutesById {
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
+  '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
-  '/projets': typeof ProjetsRoute
   '/video': typeof VideoRoute
 }
 export interface FileRouteTypes {
@@ -98,8 +98,8 @@ export interface FileRouteTypes {
     | '/choc'
     | '/contact'
     | '/labo'
+    | '/manuscrit'
     | '/nav-bulle'
-    | '/projets'
     | '/video'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,8 +108,8 @@ export interface FileRouteTypes {
     | '/choc'
     | '/contact'
     | '/labo'
+    | '/manuscrit'
     | '/nav-bulle'
-    | '/projets'
     | '/video'
   id:
     | '__root__'
@@ -118,8 +118,8 @@ export interface FileRouteTypes {
     | '/choc'
     | '/contact'
     | '/labo'
+    | '/manuscrit'
     | '/nav-bulle'
-    | '/projets'
     | '/video'
   fileRoutesById: FileRoutesById
 }
@@ -129,8 +129,8 @@ export interface RootRouteChildren {
   ChocRoute: typeof ChocRoute
   ContactRoute: typeof ContactRoute
   LaboRoute: typeof LaboRoute
+  ManuscritRoute: typeof ManuscritRoute
   NavBulleRoute: typeof NavBulleRoute
-  ProjetsRoute: typeof ProjetsRoute
   VideoRoute: typeof VideoRoute
 }
 
@@ -171,18 +171,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaboRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manuscrit': {
+      id: '/manuscrit'
+      path: '/manuscrit'
+      fullPath: '/manuscrit'
+      preLoaderRoute: typeof ManuscritRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/nav-bulle': {
       id: '/nav-bulle'
       path: '/nav-bulle'
       fullPath: '/nav-bulle'
       preLoaderRoute: typeof NavBulleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projets': {
-      id: '/projets'
-      path: '/projets'
-      fullPath: '/projets'
-      preLoaderRoute: typeof ProjetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/video': {
@@ -201,8 +201,8 @@ const rootRouteChildren: RootRouteChildren = {
   ChocRoute: ChocRoute,
   ContactRoute: ContactRoute,
   LaboRoute: LaboRoute,
+  ManuscritRoute: ManuscritRoute,
   NavBulleRoute: NavBulleRoute,
-  ProjetsRoute: ProjetsRoute,
   VideoRoute: VideoRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,8 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { WebGLImage } from "@/components/webgl-image";
+import type { ReactNode } from "react";
+import { GroupeLeonie } from "@/components/project-panels";
 import cyclist from "@/assets/cyclist.jpg";
 import groupeleonie from "@/assets/groupeleonie.webp";
 import uconsulting from "@/assets/uconsulting.webp";
@@ -16,14 +14,28 @@ export function Arrow({ size = 14 }: { size?: number }) {
   return <img src="/fleche.png" alt="" width={40} height={size} className="inline-arrow" />;
 }
 
-export const projects = [
+// Un projet du rail. `panel` : contenu React libre montré dans le patatoïde
+// (vue « Aperçu ») à la place des seules métadonnées — chaque projet peut
+// passer un JSX différent (texte, composant, etc.), découpé par la forme.
+export type Project = {
+  id: string;
+  title: string;
+  category: string;
+  year: string;
+  image: string;
+  description: string;
+  panel?: ReactNode;
+};
+
+export const projects: Project[] = [
   {
     id: "001",
     title: "Groupe Leonie",
     category: "Corporate",
     year: "2025",
     image: groupeleonie,
-    description: "",
+    description: "sgsgsfgsfg",
+    panel: <GroupeLeonie />,
   },
   {
     id: "002",
@@ -31,7 +43,7 @@ export const projects = [
     category: "Corporate",
     year: "2026",
     image: uconsulting,
-    description: "",
+    description: "sfgsfgsfgs",
   },
   {
     id: "003",
@@ -47,7 +59,7 @@ export const projects = [
     category: "E-commerce",
     year: "2026",
     image: stanleygrant,
-    description: "",
+    description: "sgsfgsfg",
   },
   {
     id: "005",
@@ -55,7 +67,7 @@ export const projects = [
     category: "Portfolio",
     year: "2024",
     image: pierrebazin,
-    description: "",
+    description: "sgsgsgs",
   },
   {
     id: "006",
@@ -63,7 +75,7 @@ export const projects = [
     category: "Corporate",
     year: "2025",
     image: mariedurand,
-    description: "",
+    description: "hhhhhhhhhhhhh",
   },
 ];
 // Coordonnées du footer : laissez vide tant que l'information n'est pas disponible (affiche « À venir »)
@@ -79,116 +91,7 @@ export const siteContact = {
     { label: "Behance", url: "" },
   ],
 };
-export function ProjectGrid({ filter = "Tous" }: { filter?: string }) {
-  const [selected, setSelected] = useState<(typeof projects)[number] | null>(null);
-  const [start, setStart] = useState(0);
-  const [dir, setDir] = useState(0);
-  const [run, setRun] = useState(0);
-  const list = projects.filter((p) => filter === "Tous" || p.category === filter);
-  const n = list.length;
-  const order = list.map((_, i) => list[(i + start) % n] ?? list[0]!);
-  useEffect(() => {
-    setStart(0);
-    setDir(0);
-  }, [filter]);
-  const step = (d: number) => {
-    setStart((s) => (s + d + n) % n);
-    setDir(d);
-    setRun((r) => r + 1);
-  };
-  // Côté d'où arrive chaque carte (-1 gauche, 1 droite) pour l'animation WebGL
-  const slideFrom = (k: number) => (dir === 0 ? 0 : Math.sign(((((k + dir) % n) + n) % n) - k));
-  useEffect(() => {
-    if (!selected) return;
-    const old = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelected(null);
-    };
-    window.addEventListener("keydown", close);
-    return () => {
-      document.body.style.overflow = old;
-      window.removeEventListener("keydown", close);
-    };
-  }, [selected]);
-  return (
-    <>
-      {n > 1 && (
-        <div className="project-nav" aria-label="Navigation des projets">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Projet précédent"
-            onClick={() => step(-1)}
-          >
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Projet suivant" onClick={() => step(1)}>
-            <ChevronRight />
-          </Button>
-        </div>
-      )}
-      <div className="project-grid">
-        {order.map((project, k) => (
-          <article key={project.id}>
-            <Button
-              variant="ghost"
-              className="project-visual h-auto w-full rounded-none p-0"
-              onClick={() => setSelected(project)}
-              aria-label={`Voir ${project.title}`}
-            >
-              <WebGLImage
-                src={project.image}
-                alt={project.title}
-                from={slideFrom(k)}
-                runKey={run}
-              />
-            </Button>
-            <div className="project-label">
-              <div>
-                <h2>{project.title}</h2>
-                <p>
-                  {project.category} — {project.year}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Ouvrir ${project.title}`}
-                onClick={() => setSelected(project)}
-              >
-                <img src="/fleche.png" alt="" className="project-arrow" />
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-      {selected && (
-        <div className="project-dialog" role="dialog" aria-modal="true" aria-label={selected.title}>
-          <Button
-            autoFocus
-            variant="outline"
-            size="icon"
-            className="dialog-close"
-            aria-label="Fermer le projet"
-            onClick={() => setSelected(null)}
-          >
-            <X />
-          </Button>
-          <div className="section-top">
-            <span>Projet / {selected.id}</span>
-            <span>
-              {selected.category} — {selected.year}
-            </span>
-          </div>
-          <h2>{selected.title}</h2>
-          <img src={selected.image} alt={selected.title} width={1600} height={1088} />
-          <p className="contact-small mt-6">{selected.description}</p>
-        </div>
-      )}
-    </>
-  );
-}
+
 export function Header({ onImage }: { onImage: boolean }) {
   return (
     <header className={`site-header ${onImage ? "on-image" : ""}`}>
@@ -198,9 +101,6 @@ export function Header({ onImage }: { onImage: boolean }) {
       <nav className="site-nav" aria-label="Navigation principale">
         <Link to="/" activeOptions={{ exact: true }}>
           Accueil<sup>01</sup>
-        </Link>
-        <Link to="/projets">
-          Projets<sup>02</sup>
         </Link>
         <Link to="/labo">
           Labo<sup>04</sup>
@@ -227,7 +127,6 @@ export function Header({ onImage }: { onImage: boolean }) {
 export function SideNav({ onImage }: { onImage: boolean }) {
   const items = [
     { label: "Accueil", to: "/" },
-    { label: "Projets", to: "/projets" },
     { label: "Contact", to: "/contact" },
   ];
   return (
@@ -286,12 +185,7 @@ export function Footer() {
           </ul>
         </div>
         <div>
-          <span className="footer-label">Projets</span>
-          <p>
-            <Link to="/projets">
-              Voir les projets <Arrow />
-            </Link>
-          </p>
+          <span className="footer-label">Contact</span>
           <p>
             <Link to="/contact" className="text-foreground">
               On en parle ? <Arrow />
