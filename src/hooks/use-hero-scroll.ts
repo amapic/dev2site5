@@ -39,6 +39,15 @@ export function useHomeScroll() {
     // initial, avant la fin de la fonction de contexte.
     let floatY: gsap.core.Tween | undefined;
     let floatTilt: gsap.core.Tween | undefined;
+    // Rangement du hero (médaillon) : tween horizon de 0,5 s en temps réel,
+    // déclenché au passage du seuil (et rejoué à l'envers en remontant) au lieu
+    // d'être scrubé par le défilement — déplacement et scale partent ensemble.
+    let heroPack: gsap.core.Tween | undefined;
+    const applyPack = (tucked: boolean) => {
+      if (!heroPack) return;
+      if (tucked) heroPack.play();
+      else heroPack.reverse();
+    };
     const applyFloat = (on: boolean) => {
       if (!hero) return;
       if (on) {
@@ -80,40 +89,9 @@ export function useHomeScroll() {
             immediateRender: false,
           },
         );
-      }
-      const tl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: stage,
-          start: "top top",
-          end: `+=${Math.round(total * 100)}%`,
-          pin: true,
-          pinSpacing: true,
-          scrub: true,
-          anticipatePin: 1,
-          // Float du hero couplé à la progression : il ne tourne que quand
-          // le rangement en médaillon est achevé (1re unité sur total).
-          onUpdate: (self) => applyFloat(self.progress >= 1 / total),
-        },
-      });
-
-      // 1 · Le hero vit (0 → 0.5) puis se range en haut à gauche (0.5 → 1).
-      // Le titre se recale automatiquement sur la carte grâce au ResizeObserver.
-      tl.fromTo(".hero-photo", { scale: 1 }, { scale: 1.12, duration: 0.5 }, 0)
-        .fromTo(".mega-title", { yPercent: 0 }, { yPercent: -12, duration: 0.4 }, 0)
-        .fromTo(
-          ".hero-eyebrow span",
-          { y: 0, opacity: 1 },
-          { y: -14, opacity: 0, duration: 0.2, stagger: 0.05 },
-          0.15,
-        )
-        .fromTo(
-          ".hero-caption, .hero-note",
-          { opacity: 1, y: 0 },
-          { opacity: 0, y: -24, duration: 0.25 },
-          0.2,
-        )
-        .fromTo(
+        // Déplacement + scale + rayons du hero en un seul tween de 0,5 s réel :
+        // play() à l'aller (seuil dépassé), reverse() au retour — même durée.
+        heroPack = gsap.fromTo(
           hero,
           // Rayons elliptiques par coin (horizontal / vertical) : la carte finit en forme de patate
           {
@@ -133,8 +111,51 @@ export function useHomeScroll() {
             transformOrigin: "0% 0%",
             borderRadius: "58% 42% 63% 37% / 46% 61% 39% 54%",
             duration: 0.5,
+            ease: "power2.inOut",
+            paused: true,
+            immediateRender: false,
           },
-          0.5,
+        );
+      }
+      const tl = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: stage,
+          start: "top top",
+          end: `+=${Math.round(total * 100)}%`,
+          pin: true,
+          pinSpacing: true,
+          scrub: true,
+          anticipatePin: 1,
+          // Float du hero couplé à la progression : il ne tourne que quand
+          // le rangement en médaillon est achevé (1re unité sur total).
+          // Le rangement lui-même (heroPack) est temporalisé : 0,5 s au
+          // franchissement du seuil 0,5, et 0,5 s en sens inverse au retour.
+          onUpdate: (self) => {
+            applyFloat(self.progress >= 1 / total);
+            applyPack(self.progress >= 0.5 / total);
+          },
+        },
+      });
+
+      // 1 · Le hero vit (0 → 0.5) puis se range en haut à gauche.
+      // Le repacking du hero lui-même n'est plus scrubé : c'est le tween
+      // heroPack créé plus haut (0,5 s en temps réel, déclenché par le seuil
+      // onUpdate du ScrollTrigger). Le titre se recale automatiquement sur la
+      // carte grâce au ResizeObserver.
+      tl.fromTo(".hero-photo", { scale: 1 }, { scale: 1.12, duration: 0.5 }, 0)
+        .fromTo(".mega-title", { yPercent: 0 }, { yPercent: -12, duration: 0.4 }, 0)
+        .fromTo(
+          ".hero-eyebrow span",
+          { y: 0, opacity: 1 },
+          { y: -14, opacity: 0, duration: 0.2, stagger: 0.05 },
+          0.15,
+        )
+        .fromTo(
+          ".hero-caption, .hero-note",
+          { opacity: 1, y: 0 },
+          { opacity: 0, y: -24, duration: 0.25 },
+          0.2,
         );
 
       // 2 · Les projets défilent un à un : du coin haut droit (arrivée),

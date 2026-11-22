@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { Arrow, Footer, meta, projects } from "@/components/portfolio";
+import { HeroDashFrame } from "@/components/hero-dash-frame";
 import { BlobSvg } from "@/components/blob-svg";
 import { HANDWRITING_FONT_HREF, ManuscritUnderlay } from "@/components/manuscrit-underlay";
 import { useHomeScroll } from "@/hooks/use-hero-scroll";
@@ -138,6 +139,8 @@ function Index() {
       <div className="hero-manuscrit" aria-hidden="true">
         <ManuscritUnderlay />
       </div>
+      {/* Cadre de pointillés autour de l'écran, blanc en haut à gauche pour le médaillon */}
+      <HeroDashFrame />
       <section className="hero">
         <img
           src={cyclist}
