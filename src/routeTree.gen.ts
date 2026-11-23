@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as CacheRouteImport } from './routes/cache'
+import { Route as Cache2RouteImport } from './routes/cache-2'
+import { Route as Cache3RouteImport } from './routes/cache-3'
 import { Route as ChocRouteImport } from './routes/choc'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as LaboRouteImport } from './routes/labo'
@@ -32,6 +34,16 @@ const AtelierRoute = AtelierRouteImport.update({
 const CacheRoute = CacheRouteImport.update({
   id: '/cache',
   path: '/cache',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Cache2Route = Cache2RouteImport.update({
+  id: '/cache-2',
+  path: '/cache-2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Cache3Route = Cache3RouteImport.update({
+  id: '/cache-3',
+  path: '/cache-3',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChocRoute = ChocRouteImport.update({
@@ -69,6 +81,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
   '/cache': typeof CacheRoute
+  '/cache-2': typeof Cache2Route
+  '/cache-3': typeof Cache3Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -80,6 +94,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
   '/cache': typeof CacheRoute
+  '/cache-2': typeof Cache2Route
+  '/cache-3': typeof Cache3Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -92,6 +108,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
   '/cache': typeof CacheRoute
+  '/cache-2': typeof Cache2Route
+  '/cache-3': typeof Cache3Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -105,6 +123,8 @@ export interface FileRouteTypes {
     | '/'
     | '/atelier'
     | '/cache'
+    | '/cache-2'
+    | '/cache-3'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -116,6 +136,8 @@ export interface FileRouteTypes {
     | '/'
     | '/atelier'
     | '/cache'
+    | '/cache-2'
+    | '/cache-3'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -127,6 +149,8 @@ export interface FileRouteTypes {
     | '/'
     | '/atelier'
     | '/cache'
+    | '/cache-2'
+    | '/cache-3'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -139,6 +163,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtelierRoute: typeof AtelierRoute
   CacheRoute: typeof CacheRoute
+  Cache2Route: typeof Cache2Route
+  Cache3Route: typeof Cache3Route
   ChocRoute: typeof ChocRoute
   ContactRoute: typeof ContactRoute
   LaboRoute: typeof LaboRoute
@@ -168,6 +194,20 @@ declare module '@tanstack/react-router' {
       path: '/cache'
       fullPath: '/cache'
       preLoaderRoute: typeof CacheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cache-2': {
+      id: '/cache-2'
+      path: '/cache-2'
+      fullPath: '/cache-2'
+      preLoaderRoute: typeof Cache2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cache-3': {
+      id: '/cache-3'
+      path: '/cache-3'
+      fullPath: '/cache-3'
+      preLoaderRoute: typeof Cache3RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/choc': {
@@ -219,6 +259,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtelierRoute: AtelierRoute,
   CacheRoute: CacheRoute,
+  Cache2Route: Cache2Route,
+  Cache3Route: Cache3Route,
   ChocRoute: ChocRoute,
   ContactRoute: ContactRoute,
   LaboRoute: LaboRoute,
