@@ -1125,6 +1125,36 @@ ire u.side-nav a[data-status='active']::after { opacity: 1; transform: translate
   .cache-titling { left: 6%; width: 88%; top: 24%; }
   .cache-lede { font-size: 16px; }
 }
+.cache-eyebrow, .cache-title, .cache-lede { transition: color .9s ease, text-shadow .9s ease; }
+/* Mode nuit : le texte glisse vers une palette lunaire (la vidéo est
+   gradée côté canvas, le texte ici côté CSS) */
+.cache-stage.is-night .cache-eyebrow { color: #8fa3c8; }
+.cache-stage.is-night .cache-title { color: #cfe0ff; }
+.cache-stage.is-night .cache-lede {
+  color: #aab8d8;
+  text-shadow: 0 0 18px rgb(140 170 255 / .35);
+}
+.cache-night-btn {
+  position: absolute;
+  z-index: 3;
+  right: 4.5%;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgb(255 255 255 / .35);
+  border-radius: 999px;
+  background: rgb(0 0 0 / .25);
+  color: var(--overlay-foreground);
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: border-color .3s ease, background .3s ease;
+}
+.cache-night-btn:hover { border-color: rgb(255 255 255 / .7); background: rgb(0 0 0 / .45); }
 
 /* ========================================
    ATELIER — banc d'essai du patatoïde (/atelier)

@@ -12,6 +12,7 @@ export const Route = createFileRoute("/cache")({
     <CacheMaskScene
       forwardSrc="/video/a.mp4"
       reverseSrc="/video/a-reverse.mp4"
+      nightToggle
       eyebrow="Labo — démo / Cache vidéo"
       title="Cache"
       lede="La vidéo de fond joue en ping-pong (×2) et ce texte n'apparaît là où la lame d'eau ne le recouvre pas."

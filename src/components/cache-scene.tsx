@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 
 // Composants internes exportés côté page : titre/sous-titre
 export type CacheSceneCopy = {
@@ -13,6 +14,7 @@ type Props = {
   speed?: number; // vitesse de lecture (aller ET retour)
   maskWidth?: number; // largeur d'analyse du masque (basse résolution)
   softness?: number; // bande de transition du score R-B
+  nightToggle?: boolean; // bouton 🌙 : fait glisser la scène vers la nuit
 } & CacheSceneCopy;
 
 const DEFAULT_SPEED = 1;
@@ -30,6 +32,7 @@ export function CacheMaskScene({
   speed = DEFAULT_SPEED,
   maskWidth = DEFAULT_MASK_W,
   softness = DEFAULT_SOFTNESS,
+  nightToggle = false,
   eyebrow,
   title,
   lede,
@@ -38,6 +41,14 @@ export function CacheMaskScene({
   const bgFwdRef = useRef<HTMLVideoElement>(null); // aller
   const bgRevRef = useRef<HTMLVideoElement>(null); // retour
   const canvasRef = useRef<HTMLCanvasElement>(null); // compositing final
+  // Mode nuit : la cible (0/1) vient du bouton, le facteur glisse en douceur
+  // dans la boucle d'affichage (fondu progressif, pas de switch sec).
+  const [night, setNight] = useState(false);
+  const nightTargetRef = useRef(0);
+  const nightRef = useRef(0);
+  useEffect(() => {
+    nightTargetRef.current = night ? 1 : 0;
+  }, [night]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -104,6 +115,11 @@ export function CacheMaskScene({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
+      // Facteur nuit qui glisse vers sa cible (bouton 🌙 / ☀️)
+      const nTarget = nightTargetRef.current;
+      nightRef.current += (nTarget - nightRef.current) * 0.05;
+      const nf = nightRef.current < 0.005 ? 0 : nightRef.current;
+
       const cur = dir === "fwd" ? fwd : rev;
       if (cur.readyState >= 2) {
         const vw = cur.videoWidth || 1280;
@@ -116,6 +132,7 @@ export function CacheMaskScene({
         }
 
         // 1 · Analyse de la frame : masque d'alpha eau (1) / sable (0)
+        // (calculé sur les couleurs BRUTES de la vidéo, sans grade)
         offCtx.drawImage(cur, 0, 0, sw, sh);
         const img = offCtx.getImageData(0, 0, sw, sh);
         const d = img.data;
@@ -132,8 +149,44 @@ export function CacheMaskScene({
 
         // 2 · La vidéo de fond recadrée en cover — identique au <video> du dessous
         const pos = cover(vw, vh, w, h);
+        // Passe nuit sur la frame : assombrie, désaturée, refroidie.
+        // Le masque (destination-in) n'utilise que l'alpha : appliquer le
+        // grade AVANT la découpe est sûr, les zones rejetées disparaissent.
+        if (nf > 0) {
+          ctx.filter = `brightness(${(1 - 0.62 * nf).toFixed(3)}) saturate(${(1 - 0.45 * nf).toFixed(3)}) contrast(${(1 + 0.08 * nf).toFixed(3)})`;
+        }
         ctx.drawImage(cur, pos.dx, pos.dy, pos.dw, pos.dh);
-        // 3 · Découpe par le masque fraîchement calculé (upscale lissé)
+        ctx.filter = "none";
+
+        // 3 · Teinte lunaire : multiplication bleu nuit + reflet de lune
+        if (nf > 0) {
+          ctx.globalCompositeOperation = "multiply";
+          ctx.fillStyle = `rgba(14, 26, 58, ${(0.85 * nf).toFixed(3)})`;
+          ctx.fillRect(0, 0, w, h);
+          ctx.globalCompositeOperation = "screen";
+          const glintR = Math.max(w, h) * 0.75;
+          const glint = ctx.createRadialGradient(w * 0.72, h * 0.25, 0, w * 0.72, h * 0.25, glintR);
+          glint.addColorStop(0, `rgba(200, 220, 255, ${(0.22 * nf).toFixed(3)})`);
+          glint.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = glint;
+          ctx.fillRect(0, 0, w, h);
+          ctx.globalCompositeOperation = "source-over";
+          // Vignette : bords plus sombres, ambiance clair-obscur
+          const vig = ctx.createRadialGradient(
+            w / 2,
+            h / 2,
+            Math.min(w, h) * 0.35,
+            w / 2,
+            h / 2,
+            Math.max(w, h) * 0.75,
+          );
+          vig.addColorStop(0, "rgba(0, 0, 0, 0)");
+          vig.addColorStop(1, `rgba(0, 4, 16, ${(0.55 * nf).toFixed(3)})`);
+          ctx.fillStyle = vig;
+          ctx.fillRect(0, 0, w, h);
+        }
+
+        // 4 · Découpe par le masque fraîchement calculé (upscale lissé)
         ctx.globalCompositeOperation = "destination-in";
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(off, pos.dx, pos.dy, pos.dw, pos.dh);
@@ -149,7 +202,7 @@ export function CacheMaskScene({
   }, [forwardSrc, reverseSrc, speed, maskWidth, softness]);
 
   return (
-    <div className="cache-stage" ref={stageRef}>
+    <div className={`cache-stage${night ? " is-night" : ""}`} ref={stageRef}>
       {/* 1 · Fond : la vidéo, en ping-pong (aller + retour) */}
       <video
         ref={bgFwdRef}
@@ -179,6 +232,17 @@ export function CacheMaskScene({
         </div>
       </div>
       <canvas ref={canvasRef} className="cache-overlay" aria-hidden="true" />
+      {nightToggle && (
+        <button
+          type="button"
+          className="cache-night-btn"
+          aria-pressed={night}
+          onClick={() => setNight((v) => !v)}
+        >
+          {night ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+          <span>{night ? "Jour" : "Nuit"}</span>
+        </button>
+      )}
     </div>
   );
 }

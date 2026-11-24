@@ -14,6 +14,7 @@ import { Route as AtelierRouteImport } from './routes/atelier'
 import { Route as CacheRouteImport } from './routes/cache'
 import { Route as Cache2RouteImport } from './routes/cache-2'
 import { Route as Cache3RouteImport } from './routes/cache-3'
+import { Route as Cache4RouteImport } from './routes/cache-4'
 import { Route as ChocRouteImport } from './routes/choc'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as LaboRouteImport } from './routes/labo'
@@ -44,6 +45,11 @@ const Cache2Route = Cache2RouteImport.update({
 const Cache3Route = Cache3RouteImport.update({
   id: '/cache-3',
   path: '/cache-3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Cache4Route = Cache4RouteImport.update({
+  id: '/cache-4',
+  path: '/cache-4',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChocRoute = ChocRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/cache': typeof CacheRoute
   '/cache-2': typeof Cache2Route
   '/cache-3': typeof Cache3Route
+  '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/cache': typeof CacheRoute
   '/cache-2': typeof Cache2Route
   '/cache-3': typeof Cache3Route
+  '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/cache': typeof CacheRoute
   '/cache-2': typeof Cache2Route
   '/cache-3': typeof Cache3Route
+  '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
   '/labo': typeof LaboRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/cache'
     | '/cache-2'
     | '/cache-3'
+    | '/cache-4'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/cache'
     | '/cache-2'
     | '/cache-3'
+    | '/cache-4'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/cache'
     | '/cache-2'
     | '/cache-3'
+    | '/cache-4'
     | '/choc'
     | '/contact'
     | '/labo'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   CacheRoute: typeof CacheRoute
   Cache2Route: typeof Cache2Route
   Cache3Route: typeof Cache3Route
+  Cache4Route: typeof Cache4Route
   ChocRoute: typeof ChocRoute
   ContactRoute: typeof ContactRoute
   LaboRoute: typeof LaboRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/cache-3'
       fullPath: '/cache-3'
       preLoaderRoute: typeof Cache3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cache-4': {
+      id: '/cache-4'
+      path: '/cache-4'
+      fullPath: '/cache-4'
+      preLoaderRoute: typeof Cache4RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/choc': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   CacheRoute: CacheRoute,
   Cache2Route: Cache2Route,
   Cache3Route: Cache3Route,
+  Cache4Route: Cache4Route,
   ChocRoute: ChocRoute,
   ContactRoute: ContactRoute,
   LaboRoute: LaboRoute,
