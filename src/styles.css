@@ -1157,6 +1157,180 @@ ire u.side-nav a[data-status='active']::after { opacity: 1; transform: translate
 .cache-night-btn:hover { border-color: rgb(255 255 255 / .7); background: rgb(0 0 0 / .45); }
 
 /* ========================================
+   BOUTIQUE « LA DIGUE » (/cache, sous la scène)
+   Les 100 premiers vh restent la scène ; tout ce qui suit habille la
+   maison de confiance : colonnes étroites, respiration, aucun carrousel,
+   aucune grille de cartes. Apparitions douces via .bt-reveal.
+======================================== */
+.cache-page { position: relative; background: var(--background); }
+
+/* Navigation fixe — posée après le hero ([data-visible] posé en JS) */
+.bt-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 4.5%;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  opacity: 0; pointer-events: none; transform: translateY(-6px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.bt-nav[data-visible] { opacity: 1; pointer-events: auto; transform: none; }
+.bt-brand { font-family: var(--font-display); font-size: 19px; letter-spacing: .02em; }
+.bt-links { display: flex; gap: 26px; }
+.bt-link {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 13.5px; color: var(--muted-foreground);
+  letter-spacing: .05em; text-transform: uppercase;
+  transition: color .25s ease;
+}
+.bt-link:hover { color: var(--foreground); }
+
+/* Colonnes de texte : étroites, centrées, beaucoup de blanc */
+.bt-main { position: relative; z-index: 1; }
+.bt-section {
+  max-width: 720px; margin: 0 auto;
+  padding: 16vh 6%;
+}
+.bt-eyebrow {
+  font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--muted-foreground); margin: 0 0 22px;
+}
+.bt-heading {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.2vw, 52px);
+  line-height: 1.12; letter-spacing: -.01em;
+  margin: 0 0 26px; font-weight: 400;
+}
+.bt-body { font-size: 19px; line-height: 1.65; margin: 0 0 18px; color: var(--foreground); }
+.bt-quote { font-family: 'HandTest', var(--font-sans); font-size: 27px; line-height: 1.4; margin: 34px 0 0; }
+
+/* Protections : lignes qui s'ouvrent au survol (objets sortis du sable) */
+.bt-list { display: flex; flex-direction: column; margin-top: 10px; }
+.bt-row {
+  display: flex; gap: 22px; align-items: flex-start;
+  padding: 26px 4px; cursor: default;
+  border-top: 1px solid var(--border);
+  color: var(--foreground);
+  transition: padding-left .35s ease;
+}
+.bt-row:last-child { border-bottom: 1px solid var(--border); }
+.bt-row:hover, .bt-row:focus-visible { padding-left: 14px; outline: none; }
+.bt-row-name { font-family: var(--font-display); font-size: 24px; margin: 0 0 6px; font-weight: 400; }
+.bt-row-line { font-size: 17px; margin: 0; color: var(--muted-foreground); }
+.bt-more {
+  font-size: 15.5px; line-height: 1.6; color: var(--muted-foreground);
+  max-height: 0; opacity: 0; overflow: hidden; margin: 0;
+  transition: max-height .45s ease, opacity .45s ease, margin .45s ease;
+}
+.bt-row:hover .bt-more, .bt-row:focus-visible .bt-more {
+  max-height: 160px; opacity: 1; margin-top: 12px;
+}
+
+/* La méthode : trois houles */
+.bt-swells { display: flex; flex-direction: column; gap: 34px; margin-top: 8px; }
+.bt-swell { display: grid; grid-template-columns: 64px 1fr; gap: 4px 22px; }
+.bt-swell-step { grid-row: span 2; font-family: var(--font-display); font-size: 38px; color: var(--border); }
+.bt-swell-name { font-size: 21px; margin: 0; font-weight: 500; }
+.bt-swell-line { font-size: 17.5px; line-height: 1.6; margin: 0; color: var(--muted-foreground); }
+
+/* La discrétion : la nuit. Fond plein écran sombre, texte clair ; quand
+   cette section est à l'écran, le prop `night` fait glisser la scène
+   d'en haut dans la même nuit. */
+.bt-section--night {
+  max-width: none; width: 100%;
+  background: #0b1430;
+  color: #cfe0ff;
+  padding: 20vh 6%;
+}
+.bt-section--night .bt-eyebrow { color: #8fa3c8; }
+.bt-section--night .bt-heading { color: #cfe0ff; }
+.bt-section--night .bt-body { color: #aab8d8; }
+.bt-night-points { border-left: 1px solid rgba(207, 224, 255, .25); padding-left: 28px; margin-top: 34px; display: flex; flex-direction: column; gap: 14px; }
+.bt-night-points .bt-body { margin: 0; }
+
+/* Les paroles */
+.bt-quotes { display: flex; flex-direction: column; gap: 42px; margin-top: 8px; }
+.bt-figure { margin: 0; }
+.bt-figure .bt-quote { margin: 0 0 10px; }
+.bt-figcap { font-size: 13.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+
+/* Ils nous ont fait confiance : liste typographique, pas de logos */
+.bt-trust { list-style: none; margin: 10px 0 0; padding: 0; }
+.bt-trust-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 26px;
+  padding: 18px 4px; border-top: 1px solid var(--border);
+}
+.bt-trust-row:last-child { border-bottom: 1px solid var(--border); }
+.bt-trust-name { font-family: var(--font-display); font-size: 21px; }
+.bt-trust-what { font-size: 15px; color: var(--muted-foreground); grid-column: 1; }
+.bt-trust-since {
+  grid-row: 1 / span 2; grid-column: 2; align-self: center;
+  font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground);
+}
+
+/* Le premier contact */
+.bt-form { display: flex; flex-direction: column; gap: 22px; margin-top: 30px; }
+.bt-field { display: flex; flex-direction: column; gap: 8px; }
+.bt-label { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+.bt-input {
+  border: 0; border-bottom: 1px solid var(--border);
+  background: transparent; padding: 10px 2px;
+  font: inherit; font-size: 18px; color: var(--foreground);
+  border-radius: 0; outline: none;
+  transition: border-color .25s ease;
+}
+.bt-input:focus { border-color: var(--foreground); }
+select.bt-input { cursor: pointer; }
+.bt-submit {
+  align-self: flex-start; margin-top: 8px;
+  border: 1px solid var(--foreground); border-radius: 999px;
+  background: transparent; color: var(--foreground);
+  font: inherit; font-size: 14px; letter-spacing: .1em; text-transform: uppercase;
+  padding: 13px 30px; cursor: pointer;
+  transition: background .3s ease, color .3s ease;
+}
+.bt-submit:hover { background: var(--foreground); color: var(--background); }
+.bt-form-done { font-size: 19px; line-height: 1.6; margin-top: 30px; }
+
+/* Pied de page de La Digue */
+.bt-footer {
+  border-top: 1px solid var(--border);
+  padding: 60px 6% 44px; text-align: center;
+}
+/* Le footer global du portfolio (sous .cache-page dans le layout racine),
+   uniquement sur /cache : image.webp pleine largeur, ancrée en bas (le haut
+   est rogné), pleine largeur sans les marges habituelles. */
+.cache-page ~ .site-footer {
+  margin: 0; border-top: 0;
+  padding: 180px 6% 30px;
+  background-image:
+    linear-gradient(to bottom, var(--background), rgb(255 255 255 / 0) 55%),
+    url("/image.webp");
+  background-repeat: no-repeat, no-repeat;
+  background-position: center top, center bottom;
+  background-size: 100% 55%, 100% auto;
+}
+.bt-footer-quote { font-family: 'HandTest', var(--font-sans); font-size: 24px; margin: 0 0 14px; }
+.bt-footer-line { font-size: 13px; letter-spacing: .06em; color: var(--muted-foreground); margin: 0; }
+
+/* Apparitions au défilement (IntersectionObserver ajoute .is-visible) */
+.bt-reveal { opacity: 0; transform: translateY(24px); transition: opacity .9s ease, transform .9s ease; }
+.bt-reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-reveal { opacity: 1; transform: none; transition: none; }
+  .bt-more { transition: none; }
+}
+
+@media (max-width: 800px) {
+  .bt-section { padding: 12vh 7%; }
+  .bt-links { gap: 14px; }
+  .bt-link { font-size: 11.5px; }
+  .bt-nav { padding: 12px 5%; }
+  .bt-swells { gap: 26px; }
+}
+
+/* ========================================
    ATELIER — banc d'essai du patatoïde (/atelier)
    Un seul patatoïde centré, HUD de réglage ouvert. Fonte de base du HUD.
 ======================================== */

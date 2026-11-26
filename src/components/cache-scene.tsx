@@ -15,6 +15,7 @@ type Props = {
   maskWidth?: number; // largeur d'analyse du masque (basse résolution)
   softness?: number; // bande de transition du score R-B
   nightToggle?: boolean; // bouton 🌙 : fait glisser la scène vers la nuit
+  night?: boolean; // nuit pilotée de l'extérieur (ex : section discrétion à l'écran)
 } & CacheSceneCopy;
 
 const DEFAULT_SPEED = 1;
@@ -33,6 +34,7 @@ export function CacheMaskScene({
   maskWidth = DEFAULT_MASK_W,
   softness = DEFAULT_SOFTNESS,
   nightToggle = false,
+  night: nightProp = false,
   eyebrow,
   title,
   lede,
@@ -41,14 +43,16 @@ export function CacheMaskScene({
   const bgFwdRef = useRef<HTMLVideoElement>(null); // aller
   const bgRevRef = useRef<HTMLVideoElement>(null); // retour
   const canvasRef = useRef<HTMLCanvasElement>(null); // compositing final
-  // Mode nuit : la cible (0/1) vient du bouton, le facteur glisse en douceur
-  // dans la boucle d'affichage (fondu progressif, pas de switch sec).
-  const [night, setNight] = useState(false);
+  // Mode nuit : la cible (0/1) vient du bouton OU du prop « night » (nuit
+  // pilotée de l'extérieur) ; le facteur glisse en douceur dans la boucle
+  // d'affichage (fondu progressif, pas de switch sec).
+  const [selfNight, setSelfNight] = useState(false);
+  const isNight = selfNight || nightProp;
   const nightTargetRef = useRef(0);
   const nightRef = useRef(0);
   useEffect(() => {
-    nightTargetRef.current = night ? 1 : 0;
-  }, [night]);
+    nightTargetRef.current = isNight ? 1 : 0;
+  }, [isNight]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -202,7 +206,7 @@ export function CacheMaskScene({
   }, [forwardSrc, reverseSrc, speed, maskWidth, softness]);
 
   return (
-    <div className={`cache-stage${night ? " is-night" : ""}`} ref={stageRef}>
+    <div className={`cache-stage${isNight ? " is-night" : ""}`} ref={stageRef}>
       {/* 1 · Fond : la vidéo, en ping-pong (aller + retour) */}
       <video
         ref={bgFwdRef}
@@ -236,11 +240,11 @@ export function CacheMaskScene({
         <button
           type="button"
           className="cache-night-btn"
-          aria-pressed={night}
-          onClick={() => setNight((v) => !v)}
+          aria-pressed={isNight}
+          onClick={() => setSelfNight((v) => !v)}
         >
-          {night ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
-          <span>{night ? "Jour" : "Nuit"}</span>
+          {isNight ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+          <span>{isNight ? "Jour" : "Nuit"}</span>
         </button>
       )}
     </div>
