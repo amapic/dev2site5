@@ -17,6 +17,8 @@ import { Route as Cache3RouteImport } from './routes/cache-3'
 import { Route as Cache4RouteImport } from './routes/cache-4'
 import { Route as ChocRouteImport } from './routes/choc'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as EauRouteImport } from './routes/eau'
+import { Route as FigeeRouteImport } from './routes/figee'
 import { Route as LaboRouteImport } from './routes/labo'
 import { Route as ManuscritRouteImport } from './routes/manuscrit'
 import { Route as NavBulleRouteImport } from './routes/nav-bulle'
@@ -62,6 +64,16 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EauRoute = EauRouteImport.update({
+  id: '/eau',
+  path: '/eau',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FigeeRoute = FigeeRouteImport.update({
+  id: '/figee',
+  path: '/figee',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LaboRoute = LaboRouteImport.update({
   id: '/labo',
   path: '/labo',
@@ -92,6 +104,8 @@ export interface FileRoutesByFullPath {
   '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
+  '/eau': typeof EauRoute
+  '/figee': typeof FigeeRoute
   '/labo': typeof LaboRoute
   '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
@@ -106,6 +120,8 @@ export interface FileRoutesByTo {
   '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
+  '/eau': typeof EauRoute
+  '/figee': typeof FigeeRoute
   '/labo': typeof LaboRoute
   '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
@@ -121,6 +137,8 @@ export interface FileRoutesById {
   '/cache-4': typeof Cache4Route
   '/choc': typeof ChocRoute
   '/contact': typeof ContactRoute
+  '/eau': typeof EauRoute
+  '/figee': typeof FigeeRoute
   '/labo': typeof LaboRoute
   '/manuscrit': typeof ManuscritRoute
   '/nav-bulle': typeof NavBulleRoute
@@ -137,6 +155,8 @@ export interface FileRouteTypes {
     | '/cache-4'
     | '/choc'
     | '/contact'
+    | '/eau'
+    | '/figee'
     | '/labo'
     | '/manuscrit'
     | '/nav-bulle'
@@ -151,6 +171,8 @@ export interface FileRouteTypes {
     | '/cache-4'
     | '/choc'
     | '/contact'
+    | '/eau'
+    | '/figee'
     | '/labo'
     | '/manuscrit'
     | '/nav-bulle'
@@ -165,6 +187,8 @@ export interface FileRouteTypes {
     | '/cache-4'
     | '/choc'
     | '/contact'
+    | '/eau'
+    | '/figee'
     | '/labo'
     | '/manuscrit'
     | '/nav-bulle'
@@ -180,6 +204,8 @@ export interface RootRouteChildren {
   Cache4Route: typeof Cache4Route
   ChocRoute: typeof ChocRoute
   ContactRoute: typeof ContactRoute
+  EauRoute: typeof EauRoute
+  FigeeRoute: typeof FigeeRoute
   LaboRoute: typeof LaboRoute
   ManuscritRoute: typeof ManuscritRoute
   NavBulleRoute: typeof NavBulleRoute
@@ -244,6 +270,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/eau': {
+      id: '/eau'
+      path: '/eau'
+      fullPath: '/eau'
+      preLoaderRoute: typeof EauRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/figee': {
+      id: '/figee'
+      path: '/figee'
+      fullPath: '/figee'
+      preLoaderRoute: typeof FigeeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/labo': {
       id: '/labo'
       path: '/labo'
@@ -284,6 +324,8 @@ const rootRouteChildren: RootRouteChildren = {
   Cache4Route: Cache4Route,
   ChocRoute: ChocRoute,
   ContactRoute: ContactRoute,
+  EauRoute: EauRoute,
+  FigeeRoute: FigeeRoute,
   LaboRoute: LaboRoute,
   ManuscritRoute: ManuscritRoute,
   NavBulleRoute: NavBulleRoute,
