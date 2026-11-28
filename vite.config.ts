@@ -12,4 +12,12 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // HMR désactivé : chaque enregistrement recharge la page entièrement
+      // (utile pour comparer deux versions d'une vidéo en éditant le src —
+      // pas d'état vidéo résiduel du hot reload).
+      hmr: false,
+    },
+  },
 });

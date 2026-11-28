@@ -10,8 +10,8 @@ export const Route = createFileRoute("/cache-4")({
     ),
   component: () => (
     <CacheMaskScene
-      forwardSrc="/video/VsfYiDfXWKKyIO0_XpqsYg-sharp.mp4"
-      reverseSrc="/video/VsfYiDfXWKKyIO0_XpqsYg-sharp-reverse.mp4"
+      forwardSrc="/video/VsfYiDfXWKKyIO0_XpqsYg-esrgan.mp4"
+      reverseSrc="/video/VsfYiDfXWKKyIO0_XpqsYg-esrgan-reverse.mp4"
       eyebrow="Labo — démo / Cache vidéo n°4"
       title="Flux"
       lede="L'eau monte depuis le haut de l'écran en ×2 : le texte est recouvert par chaque lame puis révélé au reflux."

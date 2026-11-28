@@ -14,6 +14,8 @@ type Props = {
   speed?: number; // vitesse de lecture (aller ET retour)
   maskWidth?: number; // largeur d'analyse du masque (basse résolution)
   softness?: number; // bande de transition du score R-B
+  spatialBlur?: number; // rayon (en px du masque) du flou de l'alpha : continuité géographique de la frontière
+  temporalSmooth?: number; // 0..1 : poids de la frame courante dans la moyenne glissante : continuité temporelle
   nightToggle?: boolean; // bouton 🌙 : fait glisser la scène vers la nuit
   night?: boolean; // nuit pilotée de l'extérieur (ex : section discrétion à l'écran)
 } & CacheSceneCopy;
@@ -26,13 +28,18 @@ const DEFAULT_SOFTNESS = 16;
    fond vidéo en ping-pong, titraille au-dessus, et un canvas qui redessine la
    frame courante avant de la découper (destination-in) par un masque calculé
    en direct : R - B > 0 = sable (transparent), ≤ 0 = eau (opaque). Le masque
-   est calculé sur LA frame affichée, donc la synchro est structurelle. */
+   est calculé sur LA frame affichée, donc la synchro est structurelle.
+   Options anti-scintillement : spatialBlur (flou de l'alpha, continuité
+   géographique de la frontière) et temporalSmooth (moyenne glissante entre
+   frames, continuité temporelle — un pixel ne bascule plus sec). */
 export function CacheMaskScene({
   forwardSrc,
   reverseSrc,
   speed = DEFAULT_SPEED,
   maskWidth = DEFAULT_MASK_W,
   softness = DEFAULT_SOFTNESS,
+  spatialBlur = 0,
+  temporalSmooth = 0,
   nightToggle = false,
   night: nightProp = false,
   eyebrow,
@@ -72,6 +79,43 @@ export function CacheMaskScene({
     let raf = 0;
     let stopped = false;
     let dir: "fwd" | "rev" = "fwd";
+
+    // Alpha brut (0..1) par pixel du masque, et sa version lissée de la frame
+    // précédente pour la moyenne glissante temporelle.
+    let alphaBuf = new Float32Array(0);
+    let prevAlpha = new Float32Array(0);
+
+    // Flou séparable (boîte, passes H puis V) sur l'alpha : lisse le score
+    // R-B bruité pixel à pixel, la frontière devient une pente continue.
+    const blurAlpha = (buf: Float32Array, w: number, h: number, r: number, passes: number) => {
+      if (r <= 0) return;
+      const tmp = new Float32Array(buf.length);
+      const win = 2 * r + 1;
+      const at = (arr: Float32Array, i: number) => arr[i] ?? 0;
+      for (let p = 0; p < passes; p++) {
+        for (let y = 0; y < h; y++) {
+          const row = y * w;
+          let sum = 0;
+          for (let x = -r; x <= r; x++) sum += at(buf, row + Math.min(w - 1, Math.max(0, x)));
+          for (let x = 0; x < w; x++) {
+            tmp[row + x] = sum / win;
+            const xa = Math.min(w - 1, Math.max(0, x - r));
+            const xb = Math.min(w - 1, Math.max(0, x + r + 1));
+            sum += at(buf, row + xb) - at(buf, row + xa);
+          }
+        }
+        for (let x = 0; x < w; x++) {
+          let sum = 0;
+          for (let y = -r; y <= r; y++) sum += at(tmp, Math.min(h - 1, Math.max(0, y)) * w + x);
+          for (let y = 0; y < h; y++) {
+            buf[y * w + x] = sum / win;
+            const ya = Math.min(h - 1, Math.max(0, y - r));
+            const yb = Math.min(h - 1, Math.max(0, y + r + 1));
+            sum += at(tmp, yb * w + x) - at(tmp, ya * w + x);
+          }
+        }
+      }
+    };
 
     // Object-fit: cover calculé à la main pour drawImage
     const cover = (vw: number, vh: number, w: number, h: number) => {
@@ -135,19 +179,39 @@ export function CacheMaskScene({
           off.height = sh;
         }
 
-        // 1 · Analyse de la frame : masque d'alpha eau (1) / sable (0)
-        // (calculé sur les couleurs BRUTES de la vidéo, sans grade)
+        // 1 · Analyse de la frame : score R-B par pixel (calculé sur les
+        // couleurs BRUTES de la vidéo, sans grade)
+        const n = sw * sh;
+        if (alphaBuf.length !== n) {
+          alphaBuf = new Float32Array(n);
+          prevAlpha = new Float32Array(n);
+        }
         offCtx.drawImage(cur, 0, 0, sw, sh);
         const img = offCtx.getImageData(0, 0, sw, sh);
         const d = img.data;
-        for (let i = 0; i < d.length; i += 4) {
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
           // score = R - B : > 0 sable (transparent), ≤ 0 eau (opaque).
           const r = d[i] ?? 0;
           const b = d[i + 2] ?? 0;
           let a = 0.5 - (r - b) / softness;
           a = a <= 0 ? 0 : a >= 1 ? 1 : a;
+          // Continuité temporelle : l'alpha poursuit celui de la frame
+          // précédente (moyenne glissante) au lieu de basculer sec — un pixel
+          // de mousse ou de bruit ne clignote plus entre les frames.
+          if (temporalSmooth > 0) {
+            const prev = prevAlpha[p] ?? a;
+            a = prev + (a - prev) * temporalSmooth;
+            prevAlpha[p] = a;
+          }
+          alphaBuf[p] = a;
+        }
+        // Continuité géographique : flou de l'alpha avant l'upscale, la
+        // frontière eau/sable devient une pente douce et plus une dentelle
+        // de pixels qui scintille.
+        blurAlpha(alphaBuf, sw, sh, spatialBlur, 2);
+        for (let i = 0, p = 0; i < d.length; i += 4, p++) {
           d[i] = d[i + 1] = d[i + 2] = 255; // rgb sans importance pour destination-in
-          d[i + 3] = a * 255;
+          d[i + 3] = (alphaBuf[p] ?? 0) * 255;
         }
         offCtx.putImageData(img, 0, 0);
 
@@ -203,7 +267,7 @@ export function CacheMaskScene({
       stopped = true;
       cancelAnimationFrame(raf);
     };
-  }, [forwardSrc, reverseSrc, speed, maskWidth, softness]);
+  }, [forwardSrc, reverseSrc, speed, maskWidth, softness, spatialBlur, temporalSmooth]);
 
   return (
     <div className={`cache-stage${isNight ? " is-night" : ""}`} ref={stageRef}>
